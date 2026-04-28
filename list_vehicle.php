@@ -23,9 +23,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'image'            => trim($_POST['image'] ?? ''),
     ];
 
+    // Handle image upload
+    if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = 'uploads/';
+      if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+      }
+        $fileName = time() . '_' . basename($_FILES['image_file']['name']);
+        $targetPath = $uploadDir . $fileName;
+        if (move_uploaded_file($_FILES['image_file']['tmp_name'], $targetPath)) {
+            $data['image'] = $targetPath;
+        }
+    }
+
     // Run AI admin decision
     $aiResult = aiAdminDecision($data);
-    $data['status'] = $aiResult['decision'];
+    // Force status to 'pending' for manual approval as requested
+    $data['status'] = 'pending';
     $data['final_price'] = $aiResult['suggested_price'];
 
     $pdo = getDB();
@@ -38,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <?php include 'header.php'; ?>
 <style>
-.lv-wrap{padding-top:54px;padding-left:48px;min-height:100vh;}
+.list-wrap { padding-top:var(--nav-h); padding-left:var(--sidebar-w); min-height:100vh;}
 .lv-inner{max-width:900px;margin:0 auto;padding:3.5rem 2rem 6rem;}
 .ai-result-box{padding:1.5rem;border:1px solid;margin-top:2rem;}
 .ai-approved{background:rgba(0,214,143,.06);border-color:rgba(0,214,143,.25);color:var(--success);}
@@ -65,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php else: ?>
     <div class="form-card">
       <div class="form-section-title"><i class="fas fa-car"></i> Basic Information</div>
-      <form method="POST" action="list_vehicle.php">
+      <form method="POST" action="list_vehicle.php" enctype="multipart/form-data">
         <div class="form-row">
           <div class="form-group">
             <label>Vehicle Title *</label>
@@ -139,6 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="form-section-title" style="margin-top:1.5rem;"><i class="fas fa-image"></i> Vehicle Image</div>
         <div class="form-group">
+          <label>Upload Image from Local PC</label>
+          <input type="file" name="image_file" accept="image/*" style="margin-bottom: 0.5rem; color: var(--txt);">
+          <div style="font-size: 0.75rem; color: var(--txt2); margin: 0.5rem 0;">— OR —</div>
           <label>Image URL (optional)</label>
           <input type="url" name="image" placeholder="https://... (paste a direct image link)">
           <small style="font-size:.72rem;color:var(--txt2);margin-top:.3rem;">You can use any public image URL from Google or Unsplash</small>

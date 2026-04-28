@@ -16,14 +16,22 @@ if ($pdo && $_SESSION['user_id'] != 99) {
 ?>
 <?php include 'header.php'; ?>
 <style>
-.dash-wrap{padding-top:54px;padding-left:48px;}
+.dash-wrap{padding-top:var(--nav-h);padding-left:var(--sidebar-w);}
 .dash-inner{padding:3rem 2.5rem 6rem;max-width:1100px;margin:0 auto;}
 .dash-hello{font-family:inherit;font-size:1.8rem;font-weight:700;color:var(--white);margin-bottom:2rem;}
 .dash-hello span{color:var(--blue);}
 .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:3rem;}
-.dash-card{background:var(--card);border:1px solid rgba(255,255,255,.06);padding:1.5rem;text-align:center;}
-.dash-card-n{font-family:inherit;font-size:2rem;font-weight:900;color:var(--blue);}
-.dash-card-l{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--txt2);margin-top:.3rem;font-family:inherit;}
+.dash-card{
+  background: #0A0D17;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dash-card:hover { transform: translateY(-4px); border-color: rgba(59,130,246,0.25); }
+.dash-card-n{ font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+.dash-card-l{ font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(226,232,240,0.4); margin-top: .6rem; font-weight: 600; }
 .quick-actions{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:2.5rem;}
 .sec-sep{font-family:inherit;font-size:.7rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--blue);display:flex;align-items:center;gap:.6rem;margin-bottom:1.2rem;}
 .sec-sep::before{content:'';width:16px;height:1.5px;background:var(--blue);}

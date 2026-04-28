@@ -1,5 +1,9 @@
 <?php
 require_once 'db.php';
+if (!isLoggedIn()) {
+  redirect('home.php');
+}
+
 $pageTitle = 'VRide — Premium Vehicle Rentals';
 $pdo = getDB();
 $featured = [];
@@ -8,44 +12,72 @@ if ($pdo) {
 }
 
 $realVehicles = [
-  ["name"=>"Lamborghini Huracán","cat"=>"Supercar","type"=>"4wheeler","price"=>"₹12,000",
-   "img"=>"https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&q=80",
+  ["name"=>"Lamborghini Huracán","type"=>"4wheeler","price"=>"₹12,000",
+   "imgs"=>["https://images.unsplash.com/photo-1657217674164-9cbf85acfc6d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fExhbWJvcmdoaW5pJTIwSHVyYWMlQzMlQTFufGVufDB8fDB8fHww",
+            "https://images.unsplash.com/photo-1657769106786-b6f50ac90f5f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fExhbWJvcmdoaW5pJTIwSHVyYWMlQzMlQTFufGVufDB8fDB8fHww",
+            "https://images.unsplash.com/photo-1519245659620-e859806a8d3b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8TGFtYm9yZ2hpbmklMjBIdXJhYyVDMyVBMW58ZW58MHx8MHx8fDA%3D"],
    "tag"=>"HOT","seats"=>2,"speed"=>"325 km/h","fuel"=>"Petrol","city"=>"Mumbai","id"=>1],
   ["name"=>"Royal Enfield Classic 350","cat"=>"Cruiser Bike","type"=>"2wheeler","price"=>"₹350",
-   "img"=>"https://images.unsplash.com/photo-1694956792421-e946fff94564?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+   "imgs"=>["https://images.unsplash.com/photo-1694956792421-e946fff94564?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cm95YWwlMjBlbmZpZWxkJTIwY2xhc3NpYyUyMDM1MHxlbnwwfHwwfHx8MA%3D%3D",
+            "https://images.unsplash.com/photo-1721543480826-b7e5ff28a3cb?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fHJveWFsJTIwZW5maWVsZCUyMGNsYXNzaWMlMjAzNTB8ZW58MHx8MHx8fDA%3D",
+            "https://images.unsplash.com/photo-1723120589136-7522d0b05eb3?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHJveWFsJTIwZW5maWVsZCUyMGNsYXNzaWMlMjAzNTB8ZW58MHx8MHx8fDA%3D"],
    "tag"=>"POPULAR","seats"=>2,"speed"=>"130 km/h","fuel"=>"Petrol","city"=>"Delhi","id"=>2],
   ["name"=>"Mercedes-Benz GLE","cat"=>"Luxury SUV","type"=>"4wheeler","price"=>"₹6,500",
-   "img"=>"https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&q=80",
+   "imgs"=>["https://images.unsplash.com/photo-1654306369985-0fb9e1a2baf5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8TWVyY2VkZXMtQmVueiUyMEdMRXxlbnwwfHwwfHx8MA%3D%3D",
+            "https://images.unsplash.com/photo-1654306489816-fa96b11518f8?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "https://images.unsplash.com/photo-1669234226129-8ede05b40eff?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"],
    "tag"=>"ELITE","seats"=>5,"speed"=>"230 km/h","fuel"=>"Diesel","city"=>"Bangalore","id"=>3],
   ["name"=>"Yamaha MT-15 V2","cat"=>"Naked Sport","type"=>"2wheeler","price"=>"₹450",
-   "img"=>"https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800&q=80",
+   "imgs"=>["https://images.unsplash.com/photo-1722720251730-3f5df2030e2c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8WWFtYWhhJTIwTVQtMTUlMjBWMiUyMGJsdWV8ZW58MHx8MHx8fDA%3D",
+            "https://images.unsplash.com/photo-1761583780505-a4edc9ecec78?q=80&w=327&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "https://images.unsplash.com/photo-1761583780655-f66645789e21?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OXx8WWFtYWhhJTIwTVQtMTUlMjBWMiUyMGJsdWV8ZW58MHx8MHx8fDA%3D"],
    "tag"=>"NEW","seats"=>2,"speed"=>"145 km/h","fuel"=>"Petrol","city"=>"Pune","id"=>4],
   ["name"=>"Porsche 911 Turbo S","cat"=>"Sports Car","type"=>"4wheeler","price"=>"₹15,000",
-   "img"=>"https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80",
+   "imgs"=>["https://images.unsplash.com/photo-1698131789135-9328c3e5644a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8UG9yc2NoZSUyMDkxMSUyMFR1cmJvJTIwU3xlbnwwfHwwfHx8MA%3D%3D",
+            "https://images.unsplash.com/photo-1698131788896-87ed9eb974c1?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fFBvcnNjaGUlMjA5MTElMjBUdXJibyUyMFN8ZW58MHx8MHx8fDA%3D",
+            "https://images.unsplash.com/photo-1698131789050-4a9ec6fb27cc?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fFBvcnNjaGUlMjA5MTElMjBUdXJibyUyMFN8ZW58MHx8MHx8fDA%3D"],
    "tag"=>"VIP","seats"=>4,"speed"=>"330 km/h","fuel"=>"Petrol","city"=>"Mumbai","id"=>5],
   ["name"=>"Honda Activa 6G","cat"=>"Scooter","type"=>"2wheeler","price"=>"₹200",
-   "img"=>"https://images.unsplash.com/photo-1748344640450-f628289d152d?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+   "imgs"=>["https://images.unsplash.com/photo-1744298350102-7db880bf551c?q=80&w=2008&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            "https://images.unsplash.com/photo-1621417696521-5e9fb2e436a9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHJlZCUyMEhvbmRhJTIwQWN0aXZhJTIwNkd8ZW58MHx8MHx8fDA%3D",
+            "https://media.istockphoto.com/id/1283756297/photo/speedmer-moped-with-scratched-muddy-glass-close-up-photos.webp?a=1&b=1&s=612x612&w=0&k=20&c=Toe6RyKev6tp7QijTaDKfRrWbPx_j7E7vddQDx8jx8c="],
    "tag"=>"BUDGET","seats"=>2,"speed"=>"90 km/h","fuel"=>"Petrol","city"=>"Chennai","id"=>6],
   ["name"=>"Mahindra Thar 4x4","cat"=>"Off-Road","type"=>"4wheeler","price"=>"₹3,000",
-   "img"=>"https://images.unsplash.com/photo-1723306975792-f5a053a59dd3?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+   "imgs"=>["https://images.unsplash.com/photo-1710225358761-4f5891df657d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dGhhcnxlbnwwfHwwfHx8MA%3D%3D",
+            "https://images.unsplash.com/photo-1710225395366-b0bfc6514eb0?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8dGhhcnxlbnwwfHwwfHx8MA%3D%3D",
+            "https://images.unsplash.com/photo-1710225410609-4557fefb50fd?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHRoYXJ8ZW58MHx8MHx8fDA%3D"],
    "tag"=>"ADVENTURE","seats"=>4,"speed"=>"160 km/h","fuel"=>"Diesel","city"=>"Goa","id"=>7],
   ["name"=>"KTM Duke 390","cat"=>"Naked Sport","type"=>"2wheeler","price"=>"₹550",
-   "img"=>"https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=800&q=80",
+   "imgs"=>["https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=800&q=80",
+            "https://images.unsplash.com/photo-1589874876262-6af49c17b326?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGR1a2UlMjAzOTB8ZW58MHx8MHx8fDA%3D",
+            "https://images.unsplash.com/photo-1670012300918-6e0dda76af1a?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGR1a2UlMjAzOTB8ZW58MHx8MHx8fDA%3D"],
    "tag"=>"SPORTY","seats"=>2,"speed"=>"167 km/h","fuel"=>"Petrol","city"=>"Hyderabad","id"=>8],
 ];
 
-$displayVehicles = empty($featured) ? $realVehicles : array_map(fn($v)=>[
-  "name"=>$v['title'],"cat"=>$v['category']??'Vehicle',"type"=>$v['type'],
-  "price"=>"₹".number_format($v['final_price']??$v['price_per_day']),
-  "img"=>$v['image']?:"https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80",
-  "tag"=>"","seats"=>"N/A","speed"=>"N/A","fuel"=>"N/A","city"=>$v['city']??'India',"id"=>$v['id']
-], $featured);
+
+$formattedFeatured = array_map(function($v){
+  $imgs = array_filter([$v['image'], $v['image2'] ?? null, $v['image3'] ?? null]);
+  if(empty($imgs)) $imgs = ["https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80"];
+  return [
+    "name"=>$v['title'],"cat"=>$v['category']??'Vehicle',"type"=>$v['type'],
+    "price"=>"₹".number_format($v['final_price']??$v['price_per_day']),
+    "imgs"=>$imgs,
+    "tag"=>"NEW","seats"=>"N/A","speed"=>"N/A","fuel"=>"N/A","city"=>$v['city']??'India',"id"=>$v['id']
+  ];
+}, $featured);
+
+$displayVehicles = array_merge($formattedFeatured, $realVehicles);
+// Keep only 8 latest vehicles on the homepage. They should ideally be sorted, which we assume is done by the query.
+$displayVehicles = array_slice($displayVehicles, 0, 8);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= $pageTitle ?></title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://images.unsplash.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
 <style>
 :root{--bl:#1A8CFF;--blg:rgba(26,140,255,.28);--bk:#000;--bg:#050709;--bg2:#080B12;--bg3:#0C101A;--cd:#0A0D17;--br:rgba(26,140,255,.14);--tx:#C8D4F0;--tx2:#5A6A8E;--wh:#fff;--ok:#00D68F;--rd:#FF3860;--yn:#FFB830;--gd:#F5C842;}
@@ -55,40 +87,60 @@ body{background:var(--bk);color:var(--tx);font-family:-apple-system,BlinkMacSyst
 a{text-decoration:none;color:inherit;}
 
 /* ══ NAV ══ */
-nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 3.5rem;transition:all .4s;}
-nav.sc{background:rgba(5,7,9,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--br);}
-.nl{display:flex;align-items:center;gap:.6rem;}
-.nlb{width:30px;height:30px;background:var(--wh);clip-path:(50% 0%,0% 38%,20% 100%,50% 75%,80% 100%,100% 38%);}
-.nlt{font-size:1.6rem;font-weight:700;color:var(--wh);letter-spacing:.06em;}
-.nlt span{color:var(--bl);}
-.nav-links{display:flex;gap:2.4rem;list-style:none;}
-.nav-links a{color:rgba(200,212,240,.6);font-size:.76rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;transition:color .3s;position:relative;}
-.nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;width:0;height:1.5px;background:var(--bl);transition:width .3s;}
-.nav-links a:hover,.nav-links a.on{color:var(--bl);}
-.nav-links a:hover::after,.nav-links a.on::after{width:100%;}
-.nav-links a.hi{color:var(--bl);}
-.nb{display:flex;gap:.6rem;align-items:center;}
-.nbo,.nbf{padding:.45rem 1.3rem;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border-radius:30px;transition:all .3s;cursor:pointer;border:none;}
-.nbo{background:transparent;border:1.5px solid rgba(26,140,255,.3);color:var(--tx2);}
-.nbo:hover{border-color:var(--bl);color:var(--bl);}
-.nbf{background:var(--bl);color:var(--bk);box-shadow:0 0 16px var(--blg);}
-.nbf:hover{background:#3AA6FF;transform:translateY(-1px);}
-.nav-user{font-size:.76rem;color:var(--tx2);display:flex;align-items:center;gap:.4rem;}
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:500;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 3.5rem; height:64px;
+  background:rgba(5,7,9,0.98); backdrop-filter:blur(20px);
+  border-bottom:1px solid transparent; transition:all 0.4s;
+}
+nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,0.08);}
+.nl { display:flex; align-items:center; gap:1.2rem; }
+.logo-img { height:38px; width:auto; display:block; mix-blend-mode:screen; }
+@media(max-width:768px){.logo-img{height:30px;}}
+.nav-links { display:flex; gap:2.2rem; list-style:none; align-items:center; }
+.nav-links a {
+  color:rgba(226,232,240,0.6); font-size:0.75rem; font-weight:600;
+  letter-spacing:0.04em; text-transform:uppercase; transition:color 0.3s;
+  position:relative; padding: 0.5rem 0;
+}
+.nav-links a::after {
+  content:''; position:absolute; bottom:0; left:0; width:0; height:1.5px;
+  background:#3B82F6; transition:width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-links a:hover, .nav-links a.on { color:#fff; }
+.nav-links a:hover::after, .nav-links a.on::after { width:100%; }
+.nb { display:flex; gap:0.8rem; align-items:center; }
+.nbo {
+  padding:0.45rem 1.2rem; font-size:0.75rem; font-weight:600;
+  border-radius:6px; border:1px solid rgba(255,255,255,0.12);
+  color:rgba(226,232,240,0.7); background:transparent; transition:all 0.3s;
+}
+.nbo:hover { border-color:rgba(255,255,255,0.25); color:#fff; background:rgba(255,255,255,0.04); }
+.nbf {
+  padding:0.45rem 1.25rem; font-size:0.75rem; font-weight:700;
+  border-radius:6px; background:#3B82F6; color:#fff; border:none;
+  transition:all 0.3s; box-shadow:0 4px 12px rgba(59,130,246,0.2);
+}
+.nbf:hover { background:#2563EB; transform:translateY(-1px); }
+.nav-user { font-size:0.75rem; color:rgba(226,232,240,0.45); display:flex; align-items:center; gap:0.5rem; }
 
 /* ══ HERO ══ */
-#hero{position:relative;height:100vh;min-height:640px;display:flex;align-items:center;background:var(--bk);overflow:hidden;}
-.hgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(26,140,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(26,140,255,.025) 1px,transparent 1px);background-size:60px 60px;}
-.hrad{position:absolute;right:8%;top:50%;transform:translateY(-50%);width:65vw;height:65vw;border-radius:50%;background:radial-gradient(ellipse,rgba(26,140,255,.07) 0%,transparent 62%);animation:gp 5s ease-in-out infinite;}
-@keyframes gp{0%,100%{transform:translateY(-50%) scale(1);}50%{transform:translateY(-52%) scale(1.05);}}
+#hero {
+  position: relative;
+  height: 100vh;
+  min-height: 640px;
+  display: flex;
+  align-items: center;
+  background: #050709;
+  overflow: hidden;
+}
 
 .hl{position:relative;z-index:10;padding:0 3.5rem;max-width:580px;}
 .hpre{font-size:.56rem;font-weight:400;letter-spacing:.45em;text-transform:uppercase;color:var(--bl);display:flex;align-items:center;gap:.7rem;margin-bottom:1.6rem;opacity:0;animation:ru .7s .15s forwards;}
 .hpre::before{content:'';width:20px;height:1px;background:var(--bl);}
 .hh{font-size:clamp(3.8rem,7.5vw,7rem);font-weight:700;line-height:.91;text-transform:uppercase;opacity:0;animation:ru .8s .3s forwards;}
 .hh .lb{color:var(--bl);}.hh .lw{color:var(--wh);}
-.hdots{display:flex;gap:.4rem;margin:.9rem 0;opacity:0;animation:ru .7s .52s forwards;}
-.hd{width:7px;height:7px;border-radius:50%;background:var(--bl);opacity:.3;transition:opacity .3s;}
-.hd.on{opacity:1;}
 .hsub{font-size:1rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--bl);opacity:0;animation:ru .8s .48s forwards;}
 .hsub .dm{color:rgba(200,212,240,.45);}
 .hdesc{font-size:.88rem;line-height:1.9;color:var(--tx2);max-width:400px;font-weight:300;opacity:0;animation:ru .8s .6s forwards;margin:.8rem 0 2rem;}
@@ -129,16 +181,21 @@ nav.sc{background:rgba(5,7,9,.96);backdrop-filter:blur(20px);border-bottom:1px s
 .hcar-shadow{position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);z-index:6;pointer-events:none;}
 
 /* ══ HERO BOTTOM BAR ══ */
-.hbot{position:absolute;bottom:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 3.5rem;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);border-top:1px solid rgba(26,140,255,.1);}
-.arrp{display:flex;gap:.5rem;}
-.arr{width:42px;height:42px;border-radius:50%;background:transparent;border:1.5px solid rgba(255,255,255,.14);color:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;transition:all .3s;}
-.arr:hover{border-color:var(--bl);color:var(--bl);background:rgba(26,140,255,.08);}
-.loc{display:flex;align-items:center;gap:.5rem;font-size:.9rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.45);}
-.loc i{color:var(--bl);font-size:.85rem;}
-.hstats{display:flex;gap:3rem;}
-.hst{text-align:center;}
-.hstn{font-size:1.45rem;font-weight:900;color:var(--bl);line-height:1;}
-.hstl{font-size:.56rem;letter-spacing:.2em;text-transform:uppercase;color:var(--tx2);margin-top:.2rem;font-weight:700;}
+.hbot{
+  position:absolute; bottom:0; left:0; right:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.5rem 3.5rem;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.arrp{display:flex;gap:.75rem;}
+.arr{width:46px;height:46px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:all .3s;}
+.arr:hover{border-color:#3B82F6;color:#3B82F6;background:rgba(59,130,246,0.08);}
+.loc{display:flex;align-items:center;gap:.7rem;font-size:.82rem;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.5);}
+.loc i{color:#3B82F6;font-size:.9rem;}
+.hst{text-align:left;}
+.hstn{font-size:1.6rem;font-weight:800;color:#fff;line-height:1;}
+.hstl{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:.2rem;font-weight:600;}
 
 @keyframes ru{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:none;}}
 
@@ -177,10 +234,18 @@ nav.sc{background:rgba(5,7,9,.96);backdrop-filter:blur(20px);border-bottom:1px s
 
 /* ══ VEHICLE CARDS ══ */
 .vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1.4rem;}
-.vc{background:var(--cd);border:1px solid rgba(255,255,255,.05);overflow:hidden;position:relative;transition:transform .4s cubic-bezier(.16,1,.3,1),border-color .3s,box-shadow .4s;}
-.vc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--bl),transparent);opacity:0;transition:opacity .3s;}
-.vc:hover{transform:translateY(-7px);border-color:rgba(26,140,255,.22);box-shadow:0 20px 50px rgba(0,0,0,.5);}
-.vc:hover::after{opacity:1;}
+.vc{
+  background: #0A0D17;
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.4s cubic-bezier(.16,1,.3,1), border-color 0.3s, box-shadow 0.4s;
+}
+.vc:hover {
+  transform: translateY(-8px);
+  border-color: rgba(59,130,246,0.3);
+ 
+}
 .vcb{position:absolute;top:.8rem;left:.8rem;z-index:3;padding:.18rem .65rem;font-size:.56rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;}
 .bh{background:rgba(255,56,96,.12);border:1px solid rgba(255,56,96,.28);color:#FF3860;}
 .bp{background:rgba(26,140,255,.12);border:1px solid rgba(26,140,255,.28);color:var(--bl);}
@@ -192,34 +257,60 @@ nav.sc{background:rgba(5,7,9,.96);backdrop-filter:blur(20px);border-bottom:1px s
 .bs{background:rgba(255,56,96,.1);border:1px solid rgba(255,56,96,.25);color:#FF3860;}
 .vct{position:absolute;top:.8rem;right:.8rem;z-index:3;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:var(--bl);font-size:.75rem;}
 
-/* ── FIXED card image: uniform height, always fills, never empty ── */
+/* ── FIXED card image: uniform height, always fills, carousel ── */
 .vcim{
   position:relative;
-  height:190px;       /* fixed height, same on all cards */
+  height:270px;
   overflow:hidden;
   background:var(--bg3);
   display:flex;align-items:center;justify-content:center;
 }
-.vcim img{
+.vcim-wrap{position:absolute;inset:0;}
+.vcim-slide{
   position:absolute;inset:0;
+  opacity:0;
+  transition:opacity .5s ease, transform .6s cubic-bezier(.16,1,.3,1);
+  background:var(--bg3);
+}
+.vcim-slide.on{opacity:1;z-index:1;}
+.vcim img{
   width:100%;height:100%;
-  object-fit:cover;    /* fills the box, crops edges — no black bars */
+  object-fit:cover;
   object-position:center;
-  transition:transform .55s ease,filter .4s;
   display:block;
 }
-/* placeholder icon shown ONLY while image is loading / broken */
-.vcim .img-placeholder{
-  position:relative;z-index:1;
-  display:flex;flex-direction:column;align-items:center;gap:.5rem;
-  color:var(--tx2);font-size:2.5rem;
-  transition:opacity .3s;
+.vc:hover .vcim .vcim-slide.on img{transform:scale(1.06);filter:brightness(1.08);}
+
+/*Carousel Elements*/
+.vcar-arr{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:28px;height:28px;border-radius:50%;
+  
+  border:1px solid rgba(255,255,255,.1);
+  color:var(--wh);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:10;opacity:0;transition:all .3s;
+  font-size:.7rem;
 }
-.vcim .img-placeholder span{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;}
-/* hide placeholder once real image loads */
-.vcim img.loaded ~ .img-placeholder{display:none;}
-.vc:hover .vcim img{transform:scale(1.06);filter:brightness(1.08);}
-.vcov{position:absolute;inset:0;background:linear-gradient(to top,var(--cd) 5%,transparent 60%);z-index:2;pointer-events:none;}
+.vcar-arr-l{left:.6rem;}
+.vcar-arr-r{right:.6rem;}
+.vc:hover .vcar-arr{opacity:1;}
+.vcar-arr:hover{background:var(--bl);color:var(--bk);border-color:var(--bl);}
+
+.vcar-dots{
+  position:absolute;bottom:.8rem;left:50%;transform:translateX(-50%);
+  display:flex;gap:.35rem;z-index:10;
+}
+.vcar-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.3);cursor:pointer;transition:all .3s;
+}
+.vcar-dot.on{background:var(--bl);width:14px;border-radius:4px;}
+
+
+.vc:hover .vcar-count{opacity:1;}
+
+.vcov{position:absolute;inset:0;background:linear-gradient(to top,var(--cd) 5%,transparent 60%);z-index:5;pointer-events:none;}
+
 
 .vcbd{padding:1.1rem 1.3rem 1.4rem;}
 .vcc{font-size:.56rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--bl);margin-bottom:.22rem;}
@@ -313,8 +404,8 @@ nav.sc{background:rgba(5,7,9,.96);backdrop-filter:blur(20px);border-bottom:1px s
 /* ══ FOOTER ══ */
 footer{background:var(--bg2);border-top:1px solid var(--br);padding:4rem 3rem 2rem;}
 .fgi{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4rem;margin-bottom:3rem;}
-.flo{font-size:1.65rem;font-weight:700;color:var(--wh);margin-bottom:.65rem;letter-spacing:.06em;}
-.flo span{color:var(--bl);}
+.flo{margin-bottom:2.2rem;}
+.flo-img{height:95px;width:auto;display:block;mix-blend-mode:screen;}
 .fde{font-size:.8rem;line-height:1.85;color:var(--tx2);margin-bottom:1.2rem;}
 .fh{font-size:.58rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--bl);margin-bottom:1.2rem;}
 .fli{list-style:none;display:flex;flex-direction:column;gap:.55rem;}
@@ -369,10 +460,10 @@ select.fin option{background:var(--bg3);}
 
 <!-- NAV -->
 <nav id="mn">
-  <a href="index.php" class="nl"><div class="nlb"></div><div class="nlt">V<span>RIDE</span></div></a>
+  <a href="index.php" class="nl"><img src="img/logo.png" alt="VRide" class="logo-img" fetchpriority="high"></a>
   <ul class="nav-links">
     <li><a href="index.php" class="on">Home</a></li>
-    <li><a href="#fleet">Fleet</a></li>
+    <li><a href="vehicles.php">Fleet</a></li>
     <li><a href="#how">How It Works</a></li>
     <li><a href="contact.php">Contact Us</a></li>
     <?php if(!empty($_SESSION['user_id'])): ?>
@@ -393,10 +484,7 @@ select.fin option{background:var(--bg3);}
   </div>
 </nav>
 
-<!-- HERO -->
 <section id="hero">
-  <div class="hgrid"></div>
-  <div class="hrad"></div>
 
   <div class="hl">
     <h1 class="hh">
@@ -404,9 +492,6 @@ select.fin option{background:var(--bg3);}
       <span class="lw">VEHICLE</span><br>
       <span class="lb">RENTALS</span>
     </h1>
-    <div class="hdots">
-      <div class="hd on"></div><div class="hd"></div><div class="hd"></div><div class="hd"></div><div class="hd"></div>
-    </div>
     <p class="hsub">FIND THE <span style="color:var(--wh)">BEST VEHICLE</span><br>FOR RENT <span class="dm">TODAY</span></p>
     <p class="hdesc">Cars, Bikes, SUVs — India's most trusted rental platform. Verified vehicles, fair pricing, doorstep delivery.</p>
     <div class="hbtns">
@@ -419,10 +504,9 @@ select.fin option{background:var(--bg3);}
   <div class="hcar" id="heroWrap">
     <?php
     $heroSlides = [
-      ["https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1400&q=85", "Lamborghini Huracán"],
-      ["https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1400&q=85", "Porsche 911"],
-      ["https://images.unsplash.com/photo-1563720223185-11003d516935?w=1400&q=85", "Mercedes GLE"],
-      ["https://images.unsplash.com/photo-1723306975792-f5a053a59dd3?q=80&w=869&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", "Mahindra Thar"],
+      ["https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80", "Lamborghini Huracán"],
+      ["https://images.unsplash.com/photo-1563720223185-11003d516935?w=1200&q=80", "Mercedes GLE"],
+      ["https://images.unsplash.com/photo-1723306975792-f5a053a59dd3?q=80&w=1200&auto=format&fit=crop", "Mahindra Thar"],
     ];
     foreach($heroSlides as $idx => $sl): ?>
     <div class="hslide <?= $idx===0?'active':'' ?>" data-index="<?= $idx ?>">
@@ -432,21 +516,7 @@ select.fin option{background:var(--bg3);}
     <div class="hcar-shadow"></div>
   </div>
 
-  <div class="hbot">
-    <div style="display:flex;align-items:center;gap:1.3rem;">
-      <div class="arrp">
-        <button class="arr" id="pr"><i class="fa-solid fa-arrow-left"></i></button>
-        <button class="arr" id="nx"><i class="fa-solid fa-arrow-right"></i></button>
-      </div>
-      <div class="loc"><i class="fa-solid fa-location-dot"></i> Service Tracking</div>
-    </div>
-    <div class="hstats">
-      <div class="hst"><div class="hstn">80+</div><div class="hstl">Vehicles</div></div>
-      <div class="hst"><div class="hstn">15K+</div><div class="hstl">Clients</div></div>
-      <div class="hst"><div class="hstn">4.9<i class="fa-solid fa-star" style="font-size:.9rem;vertical-align:middle;margin-left:2px;"></i></div><div class="hstl">Rating</div></div>
-      <div class="hst"><div class="hstn">24/7</div><div class="hstl">Support</div></div>
-    </div>
-  </div>
+  
 </section>
 
 <!-- SEARCH BAR -->
@@ -510,14 +580,14 @@ select.fin option{background:var(--bg3);}
     <div class="fstrip">
       <button class="ftab on" onclick="fltr('all',this)"><i class="fa-solid fa-flag-checkered"></i> All</button>
       <button class="ftab" onclick="fltr('2wheeler',this)"><i class="fa-solid fa-motorcycle"></i> Bikes &amp; Scooters</button>
-      <button class="ftab" onclick="fltr('4wheeler',this)"><i class="fa-solid fa-car"></i> Cars &amp; SUVs</button>
+      <button class="ftab" onclick="fltr('4wheeler',this)"><i class="fa-solid "></i> Cars &amp; SUVs</button>
     </div>
     <div class="vg" id="vg">
       <?php
       $tagCls=['HOT'=>'bh','POPULAR'=>'bp','ELITE'=>'be','NEW'=>'bn','VIP'=>'bv','BUDGET'=>'bb','ADVENTURE'=>'ba','SPORTY'=>'bs',''=>'bp'];
       /* Reliable fallback images per type */
-      $fallback2w = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80";
-      $fallback4w = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80";
+      $fallback2w = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=70";
+      $fallback4w = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=70";
 
       foreach($displayVehicles as $i=>$v):
         $tc  = $tagCls[$v['tag']??''] ?? 'bp';
@@ -534,21 +604,33 @@ select.fin option{background:var(--bg3);}
         <?php endif; ?>
         <div class="vct"><i class="fa-solid <?= $is2w ? 'fa-motorcycle' : 'fa-car' ?>"></i></div>
 
-        <div class="vcim">
-          <img
-            src="<?= htmlspecialchars($rawImg) ?>"
-            alt="<?= htmlspecialchars($v['name']??$v['title']??'Vehicle') ?>"
-            loading="lazy"
-            onload="this.classList.add('loaded')"
-            onerror="this.src='<?= $is2w ? $fallback2w : $fallback4w ?>'; this.classList.add('loaded')"
-          >
-          <!-- Placeholder shown only while/if image is absent -->
+        <div class="vcim" data-id="<?= $v['id']??0 ?>">
+          <div class="vcim-wrap">
+            <?php foreach($v['imgs'] as $jx => $imgUrl): ?>
+              <div class="vcim-slide <?= $jx===0?'on':'' ?>" data-idx="<?= $jx ?>">
+                <img src="<?= htmlspecialchars($imgUrl) ?>" alt="<?= htmlspecialchars($v['name']??'') ?>" loading="lazy" onload="this.classList.add('loaded')">
+              </div>
+            <?php endforeach; ?>
+          </div>
+          
+          <?php if(count($v['imgs']) > 1): ?>
+            <div class="vcar-arr vcar-arr-l" onclick="moveCar(this,-1,event)"><i class="fa-solid fa-chevron-left"></i></div>
+            <div class="vcar-arr vcar-arr-r" onclick="moveCar(this,1,event)"><i class="fa-solid fa-chevron-right"></i></div>
+            <div class="vcar-dots">
+              <?php foreach($v['imgs'] as $jx => $imgUrl): ?>
+                <div class="vcar-dot <?= $jx===0?'on':'' ?>" onclick="jumpCar(this,<?= $jx ?>,event)"></div>
+              <?php endforeach; ?>
+            </div>
+            <div class="vcar-count"><i class="fa-solid fa-camera"></i> <span class="vcar-cur">1</span>/<?= count($v['imgs']) ?></div>
+          <?php endif; ?>
+
           <div class="img-placeholder">
             <i class="fa-solid <?= $is2w ? 'fa-motorcycle' : 'fa-car' ?>"></i>
             <span><?= htmlspecialchars($v['cat']??'Vehicle') ?></span>
           </div>
           <div class="vcov"></div>
         </div>
+
 
         <div class="vcbd">
           <div class="vcc"><?= htmlspecialchars($v['cat']??$v['category']??'Vehicle') ?></div>
@@ -765,7 +847,7 @@ select.fin option{background:var(--bg3);}
 <footer>
   <div class="fgi">
     <div>
-      <div class="flo">V<span>RIDE</span></div>
+      <div class="flo"><img src="img/logo.png" alt="VRide" class="flo-img"></div>
       <div class="fde">India's trusted vehicle rental platform. Admin-verified vehicles, fair pricing, doorstep delivery across 12+ cities.</div>
       <div class="fso">
         <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
@@ -838,11 +920,55 @@ select.fin option{background:var(--bg3);}
     </div>
   </div>
 </div>
-
 <script>
+// ── VEHICLE CARD CAROUSEL ─────────────────────────────
+function goCar(card, idx) {
+  const slides = card.querySelectorAll('.vcim-slide');
+  const dots   = card.querySelectorAll('.vcar-dot');
+  const cur    = card.querySelector('.vcar-cur');
+  if(!slides.length) return;
+  idx = (idx + slides.length) % slides.length;
+  slides.forEach(s => s.classList.remove('on'));
+  dots.forEach(d => d.classList.remove('on'));
+  slides[idx].classList.add('on');
+  dots[idx]?.classList.add('on');
+  if(cur) cur.textContent = idx + 1;
+  card.dataset.ci = idx;
+}
+function moveCar(btn, dir, e) {
+  e.stopPropagation();
+  const card = btn.closest('.vcim');
+  const ci = parseInt(card.dataset.ci || 0);
+  goCar(card, ci + dir);
+}
+function jumpCar(dot, idx, e) {
+  e.stopPropagation();
+  goCar(dot.closest('.vcim'), idx);
+}
+// Mobile Swipe Support
+document.querySelectorAll('.vcim').forEach(c => {
+  let x = 0;
+  c.addEventListener('touchstart', e => x = e.touches[0].clientX, {passive:true});
+  c.addEventListener('touchend', e => {
+    let dx = e.changedTouches[0].clientX - x;
+    if(Math.abs(dx) > 40) goCar(c, parseInt(c.dataset.ci||0) + (dx > 0 ? -1 : 1));
+  }, {passive:true});
+});
+
 // NAV scroll
 const mn = document.getElementById('mn');
 window.addEventListener('scroll', () => mn.classList.toggle('sc', window.scrollY > 55));
+
+// Instant Navigation: Pre-fetch PHP links on hover for immediate transitions
+document.addEventListener('mouseover', e => {
+  const a = e.target.closest('a');
+  if (a && a.href && a.href.includes('.php') && !a.dataset.prefetched) {
+    const link = document.createElement('link');
+    link.rel = 'prefetch'; link.href = a.href;
+    document.head.appendChild(link);
+    a.dataset.prefetched = 'true';
+  }
+});
 
 // ── HERO SLIDESHOW (CSS-driven, no img.src swapping) ──────────────────
 const slides = document.querySelectorAll('.hslide');
@@ -886,7 +1012,15 @@ function fltr(type, btn) {
 
 // MODAL
 function openModal(v) {
-  document.getElementById('mI').src = v.img || v.image || '';
+  // Use currently active carousel image if available
+  const card = document.querySelector(`.vcim[data-id="${v.id}"]`);
+  let activeImg = v.img || v.image;
+  if(card) {
+    const activeSlide = card.querySelector('.vcim-slide.on img');
+    if(activeSlide) activeImg = activeSlide.src;
+  }
+  
+  document.getElementById('mI').src = activeImg || '';
   document.getElementById('mCat').textContent = (v.cat || v.category || '') + (v.type === '2wheeler' ? ' · 2 Wheeler' : ' · 4 Wheeler');
   document.getElementById('mNm').textContent  = v.name || v.title || 'Vehicle';
   document.getElementById('mPr').textContent  = v.price || ('₹' + (v.final_price || v.price_per_day || 'N/A'));
@@ -898,6 +1032,7 @@ function openModal(v) {
 }
 function closeModal() { document.getElementById('dm').classList.remove('open'); }
 document.getElementById('dm')?.addEventListener('click', e => { if (e.target.id === 'dm') closeModal(); });
+
 
 // FAQ
 function faqTg(el) {
@@ -923,6 +1058,8 @@ document.getElementById('nlBtn')?.addEventListener('click', function () {
     setTimeout(() => inp.style.borderColor = '', 2000);
   }
 });
+
 </script>
 </body>
 </html>
+

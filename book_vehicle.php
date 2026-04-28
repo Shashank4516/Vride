@@ -16,22 +16,86 @@ if (!$vehicle) {
     $vehicle = ["id"=>$vid,"title"=>"Royal Enfield Classic 350","type"=>"2wheeler","category"=>"Bike","city"=>"Mumbai","final_price"=>350,"price_per_day"=>350,"model"=>"RE Classic","image"=>"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80","description"=>"Classic cruiser with timeless design.","damage_charge"=>500,"extra_hour_charge"=>50,"terms"=>"Fuel not included. Return clean.","owner_name"=>"VRide Fleet"];
 }
 
+$reClassicImage = 'https://images.pexels.com/photos/2611684/pexels-photo-2611684.jpeg?auto=compress&cs=tinysrgb&w=1200';
+$default2wImage = 'https://images.pexels.com/photos/2393835/pexels-photo-2393835.jpeg?auto=compress&cs=tinysrgb&w=1200';
+$default4wImage = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80';
+$imageFallback = (($vehicle['type'] ?? '') === '2wheeler') ? $default2wImage : $default4wImage;
+
+$localReClassicPublic = 'img/re_classic/side.png';
+$localReClassicFile = __DIR__ . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 're_classic' . DIRECTORY_SEPARATOR . 'side.png';
+$localReClassicData = null;
+if (is_file($localReClassicFile)) {
+  $bin = @file_get_contents($localReClassicFile);
+  if ($bin !== false) {
+    $localReClassicData = 'data:image/png;base64,' . base64_encode($bin);
+  }
+}
+
+$vehicleImage = trim((string)($vehicle['image'] ?? ''));
+$titleLower = strtolower((string)($vehicle['title'] ?? ''));
+
+// Force a fresh remote image URL for Royal Enfield Classic 350.
+if (str_contains($titleLower, 'royal enfield') || str_contains($titleLower, 'classic 350')) {
+  $vehicleImage = $localReClassicData ?: $localReClassicPublic;
+  $imageFallback = $vehicleImage;
+}
+
+if ($vehicleImage === '') {
+  $vehicleImage = $imageFallback;
+}
+
 $success = false;
 $bookingRef = '';
+$error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $days = max(1, intval($_POST['days'] ?? 1));
+  $pickupDate = trim($_POST['pickup_date'] ?? '');
+  $returnDate = trim($_POST['return_date'] ?? '');
+
+  if (!$pickupDate || !$returnDate) {
+    $error = 'Please select both pickup and return dates.';
+  } else {
+    try {
+      $pickup = new DateTime($pickupDate);
+      $return = new DateTime($returnDate);
+      if ($return < $pickup) {
+        $error = 'Return date cannot be earlier than pickup date.';
+      }
+    } catch (Throwable $e) {
+      $error = 'Invalid date format. Please choose valid dates.';
+    }
+  }
+
+  if (!$error) {
+    $days = max(1, (int)$pickup->diff($return)->days);
     $amount = ($vehicle['final_price'] ?? $vehicle['price_per_day']) * $days;
     $bookingRef = 'VR-' . strtoupper(substr(md5(uniqid()), 0, 8));
+
     if ($pdo) {
+      try {
+        // Ensure the vehicle exists in the database to satisfy the Foreign Key constraint for the demo fallback.
+        $checkV = $pdo->prepare("SELECT id FROM vehicles WHERE id=?");
+        $checkV->execute([$vid]);
+        if (!$checkV->fetch()) {
+             // Insert a placeholder vehicle to prevent FK constraint failure
+             $pdo->prepare("INSERT INTO vehicles (id, title, type, category, city, price_per_day, final_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'approved')")
+                 ->execute([$vid, $vehicle['title']??'Demo Vehicle', $vehicle['type']??'2wheeler', $vehicle['category']??'Bike', $vehicle['city']??'Mumbai', $vehicle['price_per_day']??500, $vehicle['final_price']??500]);
+        }
+
         $stmt = $pdo->prepare("INSERT INTO bookings (user_id,vehicle_id,pickup_date,return_date,days,amount,final_amount,addons,payment_method,status) VALUES (?,?,?,?,?,?,?,?,?,'pending')");
-        $stmt->execute([$_SESSION['user_id'],$vid,$_POST['pickup_date'],$_POST['return_date'],$days,$amount,$amount,json_encode($_POST['addons']??[]),$_POST['payment']??'cash']);
+        $stmt->execute([$_SESSION['user_id'],$vid,$pickupDate,$returnDate,$days,$amount,$amount,json_encode($_POST['addons']??[]),$_POST['payment']??'cash']);
+        $success = true;
+      } catch (PDOException $e) {
+        $error = 'Could not save booking to database. Error: ' . $e->getMessage();
+      }
+    } else {
+      $error = 'Database connection is unavailable. Please try again later.';
     }
-    $success = true;
+    }
 }
 ?>
 <?php include 'header.php'; ?>
 <style>
-.bv-wrap{padding-top:54px;padding-left:48px;min-height:100vh;}
+.bv-wrap{padding-top:var(--nav-h);padding-left:var(--sidebar-w);min-height:100vh;}
 .bv-inner{max-width:1100px;margin:0 auto;padding:3.5rem 2rem 6rem;display:grid;grid-template-columns:1fr 360px;gap:2.5rem;align-items:start;}
 .sticky-summary{position:sticky;top:90px;}
 .sum-card{background:var(--card);border:1px solid rgba(255,255,255,.07);overflow:hidden;}
@@ -82,11 +146,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="dashboard.php" class="btn btn-primary">View My Bookings →</a>
   </div>
   <?php else: ?>
-  <div class="bv-inner" style="padding-top:3.5rem;padding-bottom:6rem;">
+  <div class="bv-inner" style="padding-bottom:6rem;">
     <!-- FORM -->
     <div>
       <div class="sec-label">Reserve Your Ride</div>
       <div class="sec-h" style="margin-bottom:2rem;">BOOKING <span class="dim">FORM</span></div>
+      <?php if (!empty($error)): ?>
+      <div style="margin-bottom:1rem;padding:.9rem 1rem;border:1px solid rgba(255,56,96,.35);background:rgba(255,56,96,.08);color:#ffd5de;font-size:.82rem;">
+        <?= htmlspecialchars($error) ?>
+      </div>
+      <?php endif; ?>
       <div class="form-card">
         <form method="POST" action="book_vehicle.php?id=<?= $vid ?>">
           <div class="form-section-title"><i class="fas fa-user"></i> Your Details</div>
@@ -141,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="sticky-summary">
       <div class="sum-card">
         <div class="sum-img">
-          <img src="<?= htmlspecialchars($vehicle['image']??'') ?>" alt="Vehicle">
+          <img src="<?= htmlspecialchars($vehicleImage) ?>" alt="Vehicle" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='<?= htmlspecialchars($imageFallback) ?>';}else{this.onerror=null;this.style.display='none';}">
           <div class="sum-img-ov"></div>
         </div>
         <div class="sum-body">
@@ -169,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </div>
   </div>
-  <?php endif; ?>
+  <?php endif ?>
 </div>
 
 <script>

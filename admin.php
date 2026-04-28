@@ -5,13 +5,12 @@ if (!isAdmin()) { flash('Admin access required.','error'); redirect('login.php')
 
 $pdo = getDB();
 $tab = $_GET['tab'] ?? 'dashboard';
-
-// Handle admin actions
+//Handle admin actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    if ($action === 'approve_vehicle' && $pdo) {
+    if ($action === 'approve_vehicle' && $pdo){
         $id = intval($_POST['id']);
-        $price = floatval($_POST['final_price']);
+        $price = floatval($_POST['final_price']);   
         $note  = trim($_POST['note'] ?? '');
         $pdo->prepare("UPDATE vehicles SET status='approved', final_price=? WHERE id=?")->execute([$price,$id]);
         flash("Vehicle approved with price ₹$price/day!");
@@ -29,6 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = intval($_POST['id']);
         $pdo->prepare("UPDATE bookings SET status='rejected' WHERE id=?")->execute([$id]);
         flash("Booking rejected.",'error');
+    } elseif ($action === 'complete_booking' && $pdo) {
+        $id = intval($_POST['id']);
+        $pdo->prepare("UPDATE bookings SET status='completed' WHERE id=?")->execute([$id]);
+        flash("Booking marked as completed!");
     }
     redirect("admin.php?tab=$tab");
 }
@@ -54,8 +57,8 @@ if ($pdo) {
 ?>
 <?php include 'header.php'; ?>
 <style>
-.adm-wrap{padding-top:54px;padding-left:48px;min-height:100vh;display:flex;}
-.adm-sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);padding:2rem 0;flex-shrink:0;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;}
+.adm-wrap{padding-top:var(--nav-h);padding-left:var(--sidebar-w);min-height:100vh;display:flex;}
+.adm-sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);padding:2rem 0;flex-shrink:0;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto;}
 .adm-nav a{display:flex;align-items:center;gap:.8rem;padding:.75rem 1.5rem;color:var(--txt2);font-family:inherit;font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:all .3s;border-right:2px solid transparent;}
 .adm-nav a:hover,.adm-nav a.on{background:rgba(26,140,255,.07);color:var(--blue);border-right-color:var(--blue);}
 .adm-nav-title{padding:.5rem 1.5rem;font-family:inherit;font-size:.58rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--txt2);opacity:.5;margin-top:.5rem;}
@@ -65,14 +68,28 @@ if ($pdo) {
 
 /* Stats */
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:2.5rem;}
-.stat-card{background:var(--card);border:1px solid rgba(255,255,255,.06);padding:1.5rem;position:relative;overflow:hidden;}
-.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(26,140,255,.08),transparent);}
-.stat-icon{font-size:1.6rem;margin-bottom:.6rem;}
-.stat-n{font-family:inherit;font-size:1.8rem;font-weight:900;color:var(--blue);line-height:1;}
-.stat-l{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--txt2);margin-top:.2rem;font-family:inherit;font-weight:700;}
+.stat-card {
+  background: #0A0D17;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card:hover { transform: translateY(-4px); border-color: rgba(59,130,246,0.25); }
+.stat-icon { font-size: 1.6rem; margin-bottom: 0.6rem; color: #3B82F6; }
+.stat-n { font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1; }
+.stat-l { font-size: .65rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(226,232,240,0.4); margin-top: .4rem; font-weight: 600; }
 
 /* Pending cards */
-.pending-card{background:var(--card);border:1px solid rgba(255,255,255,.06);padding:1.5rem;margin-bottom:1.2rem;}
+.pending-card {
+  background: #0A0D17;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.2rem;
+}
 .pc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;gap:1rem;}
 .pc-title{font-family:inherit;font-size:1.1rem;font-weight:700;color:var(--white);}
 .pc-sub{font-size:.78rem;color:var(--txt2);margin-top:.2rem;}
@@ -85,7 +102,21 @@ if ($pdo) {
 .pc-price-input input{background:var(--bg3);border:1px solid rgba(26,140,255,.3);color:var(--txt);padding:.5rem .8rem;font-family:inherit;font-size:.88rem;width:130px;outline:none;border-radius:2px;}
 
 /* AI Badge */
-.ai-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .7rem;background:rgba(26,140,255,.1);border:1px solid rgba(26,140,255,.25);color:var(--blue);font-family:inherit;font-size:.62rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;border-radius:2px;margin-bottom:.5rem;}
+.system-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .7rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(226,232,240,0.6);
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  margin-bottom: .5rem;
+}
 
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:600px){.adm-sidebar{display:none;}.adm-wrap{padding-left:0;}.stats-grid{grid-template-columns:1fr 1fr;}}
@@ -134,8 +165,10 @@ if ($pdo) {
       <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-n" style="color:var(--warn)"><?= $stats['pending_b'] ?></div><div class="stat-l">Pending Bookings</div></div>
       <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-n"><?= $stats['users'] ?></div><div class="stat-l">Users</div></div>
     </div>
-    <div style="background:var(--card);border:1px solid rgba(255,255,255,.06);padding:1.5rem;margin-bottom:1.5rem;">
-      <div style="font-family:inherit;font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:1rem;"><i class="fas fa-robot"></i> AI Admin System Status</div>
+    <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+      <div style="font-size:0.8rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#3B82F6; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fas fa-shield-check"></i> System Oversight Dashboard
+      </div>
       <div style="font-size:.85rem;line-height:1.8;color:var(--txt2);">
         <strong style="color:var(--white);">How the AI Admin Works:</strong><br>
         When an owner submits a vehicle, the AI scoring engine (score 0–100) immediately reviews: title completeness, model details, price validity, city presence, terms & damage charges.<br>
@@ -150,7 +183,7 @@ if ($pdo) {
           <a href="admin.php?tab=pending_b" class="btn btn-secondary">Review Pending Bookings</a>
         </div>
       </div>
-      <div style="background:var(--card);border:1px solid rgba(255,255,255,.06);padding:1.2rem;">
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:1.2rem;">
         <div style="font-family:inherit;font-size:.7rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--txt2);margin-bottom:.5rem;">Admin Test Credentials</div>
         <div style="font-size:.8rem;color:var(--txt2);">Email: admin@vrental.com<br>Password: admin123</div>
       </div>
@@ -169,11 +202,18 @@ if ($pdo) {
         $ai = aiAdminDecision($v);
     ?>
     <div class="pending-card">
-      <div class="ai-badge"><i class="fas fa-robot"></i> AI Score: <?= $ai['score'] ?>/100 — <?= strtoupper($ai['decision']) ?></div>
+      <div class="system-tag"><i class="fas fa-microchip" style="font-size:0.7rem;"></i> Analysis Score: <?= $ai['score'] ?>/100 — <?= strtoupper($ai['decision']) ?></div>
       <div class="pc-top">
-        <div>
-          <div class="pc-title"><?= htmlspecialchars($v['title']) ?></div>
-          <div class="pc-sub">Owner: <?= htmlspecialchars($v['owner_name']??'Unknown') ?> | <?= htmlspecialchars($v['owner_phone']??'') ?> | Listed: <?= $v['created_at'] ?></div>
+        <div style="display:flex; gap:1.5rem; align-items:flex-start;">
+          <?php if(!empty($v['image'])): ?>
+            <div style="width:120px; height:80px; flex-shrink:0; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+              <img src="<?= htmlspecialchars($v['image']) ?>" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+          <?php endif; ?>
+          <div>
+            <div class="pc-title"><?= htmlspecialchars($v['title']) ?></div>
+            <div class="pc-sub">Owner: <?= htmlspecialchars($v['owner_name']??'Unknown') ?> | <?= htmlspecialchars($v['owner_phone']??'') ?> | Listed: <?= $v['created_at'] ?></div>
+          </div>
         </div>
         <div class="badge badge-pending">PENDING</div>
       </div>
@@ -185,8 +225,8 @@ if ($pdo) {
         <div class="pc-spec">AI Suggested: <span style="color:var(--blue)">₹<?= $ai['suggested_price'] ?>/day</span></div>
         <div class="pc-spec">Damage: <span>₹<?= number_format($v['damage_charge']??0) ?></span></div>
       </div>
-      <div style="font-size:.8rem;color:var(--txt2);margin-bottom:1rem;padding:.8rem;background:rgba(26,140,255,.05);border:1px solid rgba(26,140,255,.1);">
-        <i class="fas fa-robot"></i> <?= htmlspecialchars($ai['note']) ?>
+      <div style="font-size:.82rem; color:rgba(226,232,240,0.5); margin-bottom:1.2rem; padding:1rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px;">
+        <i class="fas fa-info-circle" style="color:#3B82F6; margin-right:0.4rem;"></i> <?= htmlspecialchars($ai['note']) ?>
       </div>
       <div class="pc-actions">
         <form method="POST" style="display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;">
@@ -280,7 +320,7 @@ if ($pdo) {
     <p style="color:var(--txt2);padding:2rem 0;">No bookings yet.</p>
     <?php else: ?>
     <div style="overflow-x:auto;"><table class="tbl">
-      <thead><tr><th>Vehicle</th><th>User</th><th>Dates</th><th>Days</th><th>Amount</th><th>Status</th></tr></thead>
+      <thead><tr><th>Vehicle</th><th>User</th><th>Dates</th><th>Days</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
       <?php foreach($allBookings as $b): ?>
       <tr>
@@ -290,6 +330,15 @@ if ($pdo) {
         <td><?= $b['days']??1 ?></td>
         <td>₹<?= number_format($b['final_amount']??$b['amount']??0) ?></td>
         <td><span class="badge badge-<?= $b['status'] ?>"><?= strtoupper($b['status']) ?></span></td>
+        <td>
+          <?php if($b['status'] === 'approved'): ?>
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="complete_booking">
+            <input type="hidden" name="id" value="<?= $b['id'] ?>">
+            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark as completed?')"><i class="fas fa-check-double"></i> Complete</button>
+          </form>
+          <?php endif; ?>
+        </td>
       </tr>
       <?php endforeach; ?>
       </tbody>

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $pageTitle ?? 'VRide — Vehicle Rentals' ?></title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://images.unsplash.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 :root {
@@ -22,8 +24,8 @@
   --success: #00C77A;
   --danger: #E8365D;
   --warn: #F5A623;
-  --sidebar-w: 48px;
-  --nav-h: 54px;
+  --sidebar-w: 0px;
+  --nav-h: 80px;
 }
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -40,128 +42,34 @@ a { text-decoration:none; color:inherit; }
 ::-webkit-scrollbar-track { background:var(--bg2); }
 ::-webkit-scrollbar-thumb { background:rgba(26,140,255,0.4); border-radius:2px; }
 
-/* ── SIDEBAR ─────────────────────────────────────── */
-.sidebar {
-  position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w);
-  z-index:300; background:var(--bg2);
-  border-right:1px solid var(--border);
-  display:flex; flex-direction:column; align-items:center;
-  padding:1rem 0 1.5rem;
-}
-.sidebar-logo-mark {
-  width:30px; height:30px; background:var(--blue);
-  border-radius:7px; display:flex; align-items:center;
-  justify-content:center; margin-bottom:1.5rem; flex-shrink:0;
-}
-.sidebar-logo-mark svg { width:16px; height:16px; fill:#fff; }
-.sidebar-nav { display:flex; flex-direction:column; gap:4px; align-items:center; flex:1; }
-.sidebar-nav-item {
-  width:36px; height:36px; border-radius:8px;
-  display:flex; align-items:center; justify-content:center;
-  color:var(--txt2); transition:background 0.15s, color 0.15s;
-  position:relative; font-size:13px;
-}
-.sidebar-nav-item:hover { background:rgba(26,140,255,0.12); color:var(--blue); }
-.sidebar-nav-item.active { background:rgba(26,140,255,0.15); color:var(--blue); }
-.sidebar-nav-item::after {
-  content:attr(data-label); position:absolute; left:calc(100% + 8px);
-  top:50%; transform:translateY(-50%); background:var(--card);
-  color:var(--white); font-size:11px; font-weight:500;
-  white-space:nowrap; padding:4px 10px; border-radius:4px;
-  border:1px solid var(--border); opacity:0; pointer-events:none;
-  transition:opacity 0.12s; z-index:999;
-}
-.sidebar-nav-item:hover::after { opacity:1; }
-.sidebar-divider { width:20px; height:1px; background:var(--border); margin:6px 0; }
-
-/* ── TOP NAVBAR ───────────────────────────────────── */
-#mainNav {
-  position:fixed;
-  top:0; left:var(--sidebar-w); right:0;
-  z-index:200;
+/* ── MAIN NAV (MATCHES INDEX) ── */
+#mn {
+  position:fixed; top:0; left:0; right:0; z-index:200;
   height:var(--nav-h);
-  /* Three-column layout: logo | links | actions */
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:center;
-  gap:1.5rem;
-  padding:0 2rem;
-  transition:background 0.3s, border-color 0.3s;
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+  padding:0 3rem; background:rgba(5,7,9,0.95); backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(26,140,255,0.14);
 }
-#mainNav.scrolled {
-  background:rgba(7,10,18,0.96);
-  backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
-}
+#mn.scrolled { background:rgba(5,7,9,1); }
+.nl { display:flex; align-items:center; gap:1.2rem; }
+.logo-img { height:38px; width:auto; display:block; mix-blend-mode:screen; }
+.nav-links { display:flex; gap:2.2rem; list-style:none; justify-content:center; }
+.nav-links a { color:var(--txt2); font-weight:500; font-size:0.82rem; transition:color 0.2s; position:relative; }
+.nav-links a:hover, .nav-links a.on { color:#fff; }
+.nav-links a::after { content:''; position:absolute; bottom:-4px; left:0; height:1.5px; background:var(--blue); width:0; transition:width 0.2s; }
+.nav-links a:hover::after, .nav-links a.on::after { width:100%; }
+.nb { display:flex; gap:0.8rem; align-items:center; }
+.nbo { padding:0.45rem 1.2rem; font-size:0.75rem; font-weight:600; border-radius:6px; border:1px solid rgba(255,255,255,0.12); color:var(--txt); transition:all 0.2s; }
+.nbo:hover { border-color:rgba(255,255,255,0.25); color:#fff; background:rgba(255,255,255,0.04); }
+.nbf { padding:0.45rem 1.25rem; font-size:0.75rem; font-weight:700; border-radius:6px; background:var(--blue); color:#fff; border:none; transition:all 0.2s; }
+.nbf:hover { background:var(--blue-dark); transform:translateY(-1px); }
+.nav-user { font-size:0.75rem; color:rgba(226,232,240,0.45); display:flex; align-items:center; gap:0.5rem; }
 
-.nav-logo {
-  display:flex; align-items:center; gap:8px;
-  font-size:1rem; font-weight:700; color:var(--white);
-  white-space:nowrap; flex-shrink:0;
+@media(max-width:768px) {
+  #mn { padding:0.9rem 1.5rem; height:auto; display:flex; justify-content:space-between; }
+  .nav-links { display:none; }
+  .logo-img { height:30px; }
 }
-.nav-logo-dot { width:7px; height:7px; background:var(--blue); border-radius:50%; flex-shrink:0; }
-
-/* Center column: links */
-.nav-links {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  list-style:none;
-  gap:0;
-  /* No wrapping — links stay in a single row */
-  flex-wrap:nowrap;
-  overflow:hidden;
-}
-.nav-links li { flex-shrink:0; }
-.nav-links a {
-  display:flex;
-  align-items:center;
-  height:var(--nav-h);
-  padding:0 1rem;
-  color:var(--txt2);
-  font-size:0.82rem;
-  font-weight:500;
-  white-space:nowrap;
-  transition:color 0.2s;
-  position:relative;
-}
-.nav-links a::after {
-  content:'';
-  position:absolute;
-  bottom:0; left:1rem; right:1rem;
-  height:2px;
-  background:var(--blue);
-  transform:scaleX(0);
-  transition:transform 0.2s;
-  border-radius:2px 2px 0 0;
-}
-.nav-links a:hover { color:var(--white); }
-.nav-links a:hover::after { transform:scaleX(0.6); }
-.nav-links a.active { color:var(--white); }
-.nav-links a.active::after { transform:scaleX(1); }
-
-/* Right column: actions */
-.nav-actions {
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-shrink:0;
-  white-space:nowrap;
-}
-.nav-user-name { font-size:0.8rem; color:var(--txt2); }
-
-.btn-nav {
-  display:inline-flex; align-items:center;
-  padding:0.42rem 1rem;
-  font-size:0.78rem; font-weight:600;
-  border-radius:5px; transition:all 0.2s;
-  font-family:inherit; cursor:pointer;
-  white-space:nowrap; line-height:1;
-}
-.btn-nav-outline { border:1px solid var(--border); color:var(--txt2); background:transparent; }
-.btn-nav-outline:hover { border-color:rgba(255,255,255,0.25); color:var(--white); }
-.btn-nav-fill { background:var(--blue); color:#fff; border:none; }
-.btn-nav-fill:hover { background:var(--blue-dark); }
 
 /* ── FLASH ────────────────────────────────────────── */
 .flash {
@@ -228,6 +136,7 @@ textarea { resize:vertical; min-height:90px; }
 .badge-approved { background:rgba(0,199,122,0.1);   color:var(--success); border:1px solid rgba(0,199,122,0.25); }
 .badge-rejected { background:rgba(232,54,93,0.1);   color:var(--danger);  border:1px solid rgba(232,54,93,0.25); }
 .badge-rented   { background:rgba(26,140,255,0.1);  color:var(--blue);    border:1px solid rgba(26,140,255,0.25); }
+.badge-completed { background:rgba(168,85,247,0.1); color:#A855F7; border:1px solid rgba(168,85,247,0.25); }
 
 /* ── TABLES ───────────────────────────────────────── */
 .tbl { width:100%; border-collapse:collapse; }
@@ -253,65 +162,28 @@ textarea { resize:vertical; min-height:90px; }
 <body>
 
 <!-- ── SIDEBAR ── -->
-<aside class="sidebar">
-  <a href="index.php" class="sidebar-logo-mark" title="VRide">
-    <svg viewBox="0 0 16 16"><path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z"/></svg>
-  </a>
-  <nav class="sidebar-nav">
-    <a href="index.php"    class="sidebar-nav-item <?= basename($_SERVER['PHP_SELF'])=='index.php'?'active':'' ?>"    data-label="Home">
-      <i class="fa-solid fa-house"></i>
-    </a>
-    <a href="vehicles.php" class="sidebar-nav-item <?= basename($_SERVER['PHP_SELF'])=='vehicles.php'?'active':'' ?>" data-label="Fleet">
-      <i class="fa-solid fa-car-side"></i>
-    </a>
-    <?php if(isLoggedIn()): ?>
-    <a href="dashboard.php" class="sidebar-nav-item <?= basename($_SERVER['PHP_SELF'])=='dashboard.php'?'active':'' ?>" data-label="Dashboard">
-      <i class="fa-solid fa-table-cells-large"></i>
-    </a>
-    <?php endif; ?>
-    <?php if(isAdmin()): ?>
-    <a href="admin.php" class="sidebar-nav-item <?= basename($_SERVER['PHP_SELF'])=='admin.php'?'active':'' ?>" data-label="Admin">
-      <i class="fa-solid fa-user-shield"></i>
-    </a>
-    <?php endif; ?>
-    <div class="sidebar-divider"></div>
-    <a href="contact.php" class="sidebar-nav-item <?= basename($_SERVER['PHP_SELF'])=='contact.php'?'active':'' ?>" data-label="Contact">
-      <i class="fa-solid fa-envelope"></i>
-    </a>
-    <?php if(isLoggedIn()): ?>
-    <a href="logout.php" class="sidebar-nav-item" data-label="Logout">
-      <i class="fa-solid fa-right-from-bracket"></i>
-    </a>
-    <?php endif; ?>
-  </nav>
-</aside>
-
-<!-- ── TOP NAV ── -->
-<nav id="mainNav">
-  <a href="index.php" class="nav-logo">
-    <div class="nav-logo-dot"></div>
-    VRide
-  </a>
-
+<!-- NAV -->
+<nav id="mn">
+  <a href="index.php" class="nl"><img src="img/logo.png" alt="VRide" class="logo-img" fetchpriority="high"></a>
   <ul class="nav-links">
-    <li><a href="index.php"    <?= basename($_SERVER['PHP_SELF'])=='index.php'   ?'class="active"':'' ?>>Home</a></li>
-    <li><a href="vehicles.php" <?= basename($_SERVER['PHP_SELF'])=='vehicles.php'?'class="active"':'' ?>>Fleet</a></li>
+    <li><a href="index.php" <?= basename($_SERVER['PHP_SELF'])=='index.php'?'class="on"':'' ?>>Home</a></li>
+    <li><a href="vehicles.php" <?= basename($_SERVER['PHP_SELF'])=='vehicles.php'?'class="on"':'' ?>>Fleet</a></li>
+    <li><a href="index.php#how">How It Works</a></li>
+    <li><a href="contact.php" <?= basename($_SERVER['PHP_SELF'])=='contact.php'?'class="on"':'' ?>>Contact Us</a></li>
     <?php if(isLoggedIn()): ?>
-    <li><a href="dashboard.php" <?= basename($_SERVER['PHP_SELF'])=='dashboard.php'?'class="active"':'' ?>>Dashboard</a></li>
+    <li><a href="dashboard.php" <?= basename($_SERVER['PHP_SELF'])=='dashboard.php'?'class="on"':'' ?>>Dashboard</a></li>
+    <?php if(!empty($_SESSION['role']) && $_SESSION['role']==='admin'): ?>
+    <li><a href="admin.php" <?= basename($_SERVER['PHP_SELF'])=='admin.php'?'class="on"':'' ?>>Admin</a></li>
     <?php endif; ?>
-    <?php if(isAdmin()): ?>
-    <li><a href="admin.php" <?= basename($_SERVER['PHP_SELF'])=='admin.php'?'class="active"':'' ?>>Admin</a></li>
     <?php endif; ?>
-    <li><a href="contact.php" <?= basename($_SERVER['PHP_SELF'])=='contact.php'?'class="active"':'' ?>>Contact</a></li>
   </ul>
-
-  <div class="nav-actions">
+  <div class="nb">
     <?php if(isLoggedIn()): ?>
-      <span class="nav-user-name">Hi, <?= htmlspecialchars($_SESSION['name'] ?? 'User') ?></span>
-      <a href="logout.php" class="btn-nav btn-nav-outline">Log out</a>
+      <span class="nav-user"><i class="fa-regular fa-circle-user"></i> <?= htmlspecialchars($_SESSION['name'] ?? 'User') ?></span>
+      <a href="logout.php" class="nbo">Logout</a>
     <?php else: ?>
-      <a href="login.php"    class="btn-nav btn-nav-outline">Log in</a>
-      <a href="register.php" class="btn-nav btn-nav-fill">Register</a>
+      <a href="login.php" class="nbo">Login</a>
+      <a href="register.php" class="nbf">Register</a>
     <?php endif; ?>
   </div>
 </nav>
@@ -321,7 +193,20 @@ textarea { resize:vertical; min-height:90px; }
 <?php endif; ?>
 
 <script>
-const nav = document.getElementById('mainNav');
+const nav = document.getElementById('mn');
 window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40));
 if (window.scrollY > 40) nav.classList.add('scrolled');
+
+// Instant Navigation: Pre-fetch PHP links on hover for immediate transitions
+document.addEventListener('mouseover', e => {
+  const a = e.target.closest('a');
+  if (a && a.href && a.href.includes('.php') && !a.dataset.prefetched) {
+    const link = document.createElement('link');
+    link.rel = 'prefetch'; link.href = a.href;
+    document.head.appendChild(link);
+    a.dataset.prefetched = 'true';
+  }
+});
 </script>
+
+

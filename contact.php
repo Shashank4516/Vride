@@ -28,11 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') { $sent = true; }
 
 /* ── Info cards ──────────────────────────────────── */
 .info-card {
-  background:var(--card);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:8px;
-  padding:1.6rem 1.8rem;
-  margin-bottom:1rem;
+  background: #0A0D17;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 1.6rem 1.8rem;
+  margin-bottom: 1rem;
 }
 .info-card:last-child { margin-bottom:0; }
 .info-title {
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') { $sent = true; }
   .ct-inner { grid-template-columns:1fr; }
 }
 @media (max-width:768px) {
-  .ct-wrap  { padding-left:0; }
+  .ct-wrap { padding-top:0; padding-left:0; }
   .ct-hero  { padding-left:1.5rem; padding-right:1.5rem; }
   .ct-inner { padding-left:1.5rem; padding-right:1.5rem; }
 }
@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') { $sent = true; }
           <div class="info-icon"><i class="fa-solid fa-location-dot"></i></div>
           <div>
             <div class="info-lbl">Address</div>
-            <div class="info-val">VRide HQ, Bandra West<br>Mumbai 400050, India</div>
+            <div class="info-val">VRide HQ,   Punjab<br>Jalandhar 144411, India</div>
           </div>
         </div>
 

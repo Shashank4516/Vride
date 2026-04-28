@@ -8,20 +8,43 @@ define('DB_HOST', 'localhost');
 define('DB_USER', 'root');       // Change to your MySQL username
 define('DB_PASS', '');           // Change to your MySQL password
 define('DB_NAME', 'vehicle_rental');
+define('DB_PORT', getenv('DB_PORT') ?: '3306');
 
 function getDB() {
     static $pdo = null;
     if ($pdo === null) {
         try {
             $pdo = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8",
+                "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8",
                 DB_USER, DB_PASS,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+                  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                  PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
             );
         } catch (PDOException $e) {
-            // If DB not set up yet, return null gracefully
-            return null;
+            // Try to create the database if it does not exist yet.
+            try {
+                $rootPdo = new PDO(
+                    "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8",
+                    DB_USER,
+                    DB_PASS,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                     PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
+                );
+                $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8 COLLATE utf8_general_ci");
+
+                $pdo = new PDO(
+                    "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8",
+                    DB_USER,
+                    DB_PASS,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                     PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
+                );
+            } catch (PDOException $inner) {
+                // If DB is still not available, return null gracefully.
+                return null;
+            }
         }
     }
     return $pdo;
@@ -65,6 +88,8 @@ function installDB() {
         lat DECIMAL(10,8),
         lng DECIMAL(11,8),
         image VARCHAR(255),
+        image2 VARCHAR(255),
+        image3 VARCHAR(255),
         status ENUM('pending','approved','rejected','rented') DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
@@ -95,6 +120,17 @@ function installDB() {
         if ($q) $pdo->exec($q);
     }
 
+    // Ensure image2 and image3 columns exist in case vehicles table is old.
+    $col2 = $pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'vehicles' AND column_name = 'image2'")->fetchColumn();
+    if ((int)$col2 === 0) {
+        $pdo->exec("ALTER TABLE vehicles ADD COLUMN image2 VARCHAR(255) AFTER image");
+    }
+
+    $col3 = $pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'vehicles' AND column_name = 'image3'")->fetchColumn();
+    if ((int)$col3 === 0) {
+        $pdo->exec("ALTER TABLE vehicles ADD COLUMN image3 VARCHAR(255) AFTER image2");
+    }
+
     // Insert default admin
     $check = $pdo->query("SELECT id FROM users WHERE role='admin' LIMIT 1")->fetch();
     if (!$check) {
@@ -105,7 +141,54 @@ function installDB() {
     return true;
 }
 
-installDB();
+// Ensure base schema exists once per request.
+function bootstrapDB() {
+    static $bootstrapped = false;
+    if ($bootstrapped) return;
+    $bootstrapped = true;
+
+    $pdo = getDB();
+    if (!$pdo) return;
+
+    try {
+        $tableCount = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('users','vehicles','bookings')")->fetchColumn();
+        if ($tableCount < 3) {
+            installDB();
+        }
+
+        // Ensure bookings table exists even if earlier schema setup was partial.
+        $pdo->exec("CREATE TABLE IF NOT EXISTS bookings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT,
+            vehicle_id INT,
+            pickup_date DATE,
+            return_date DATE,
+            days INT,
+            amount DECIMAL(10,2),
+            final_amount DECIMAL(10,2),
+            addons TEXT,
+            payment_method VARCHAR(50) DEFAULT 'cash',
+            payment_status ENUM('pending','paid','failed') DEFAULT 'pending',
+            status ENUM('pending','approved','rejected','completed') DEFAULT 'pending',
+            admin_note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL
+        )");
+
+        // Ensure a default admin account exists.
+        $adminExists = $pdo->query("SELECT id FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
+        if (!$adminExists) {
+            $hash = password_hash('admin123', PASSWORD_DEFAULT);
+            $ins = $pdo->prepare("INSERT INTO users (name,email,phone,password,role,city) VALUES (?,?,?,?,?,?)");
+            $ins->execute(['Admin','admin@vrental.com','0000000000',$hash,'admin','All Cities']);
+        }
+    } catch (Throwable $e) {
+        // Keep app usable even if schema bootstrap fails.
+    }
+}
+
+bootstrapDB();
 session_start();
 
 // ── Helpers ──────────────────────────────────────────────────
