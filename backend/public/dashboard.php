@@ -1,6 +1,6 @@
 <?php
 // dashboard.php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 $pageTitle = 'My Dashboard — VRide';
 if (!isLoggedIn()) { flash('Please login first.','error'); redirect('login.php'); }
 

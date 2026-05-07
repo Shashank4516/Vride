@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 
 /**
  * Best display name from Google/Firebase user record — profile name first, otherwise from Gmail address.
@@ -49,7 +49,7 @@ if ($idToken === '') {
     exit;
 }
 
-$cfg = require __DIR__ . '/firebase_web.php';
+$cfg = require dirname(__DIR__) . '/config/firebase_web.php';
 $apiKey = $cfg['apiKey'] ?? '';
 if ($apiKey === '') {
     http_response_code(500);

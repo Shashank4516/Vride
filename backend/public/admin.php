@@ -1,6 +1,6 @@
 <?php
-require_once 'db.php';
-require_once __DIR__ . '/admin_lib.php';
+require_once dirname(__DIR__) . '/lib/db.php';
+require_once dirname(__DIR__) . '/lib/admin_lib.php';
 
 $pageTitle = 'Admin Panel — VRide';
 if (!isAdmin()) {
@@ -360,8 +360,9 @@ $allBookings = $d['allBookings'];
 </div>
 <?php
 $__ej = [];
-if (is_file(__DIR__ . '/emailjs_config.php')) {
-    $__ej = require __DIR__ . '/emailjs_config.php';
+$__ejPath = dirname(__DIR__) . '/config/emailjs_config.php';
+if (is_file($__ejPath)) {
+    $__ej = require $__ejPath;
 }
 if (!is_array($__ej)) {
     $__ej = [];

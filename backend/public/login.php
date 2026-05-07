@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 
 $pageTitle = 'Login — VRide';
 $error = '';
@@ -408,6 +408,6 @@ a { color: inherit; text-decoration: none; }
     </div>
   </section>
 </main>
-<?php include __DIR__ . '/firebase_auth_pages_script.php'; ?>
+<?php include dirname(__DIR__) . '/lib/firebase_auth_pages_script.php'; ?>
 </body>
 </html>

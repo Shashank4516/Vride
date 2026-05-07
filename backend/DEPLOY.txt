@@ -1,0 +1,22 @@
+Railway (PHP)
+-------------
+1. New service → deploy from GitHub (this repo).
+2. Service Settings → Root Directory: backend
+3. If using Dockerfile: Detector should pick Dockerfile; start command uses PORT automatically.
+4. If not Docker: Builder NIXPACKS, start command example:
+     php -S 0.0.0.0:$PORT -t public
+   (run from backend directory; run `composer install` in build.)
+
+MySQL / env
+-----------
+Set DB_* (or extend db.php with getenv()) for Railway MySQL hostname, user, password, database.
+
+Local XAMPP
+-----------
+Point DocumentRoot to: .../vride anti/backend/public
+Open: http://localhost/.../backend/public/
+
+Frontend static files
+--------------------
+JavaScript lives in frontend/public/js. backend/public/js is a symlink on macOS/Linux.
+On Windows without symlinks: copy frontend/public/js to backend/public/js (same folder contents).

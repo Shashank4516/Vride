@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 if (!isLoggedIn()) {
   redirect('home.php');
 }
@@ -1376,7 +1376,7 @@ document.getElementById('nlBtn')?.addEventListener('click', function () {
 });
 
 </script>
-<?php include __DIR__ . '/firebase_script.php'; ?>
+<?php include dirname(__DIR__) . '/lib/firebase_script.php'; ?>
 </body>
 </html>
 

@@ -103,7 +103,7 @@ function vride_phpmailer_config(): array
         if ($cache !== null) {
                 return $cache;
         }
-        $path = __DIR__ . DIRECTORY_SEPARATOR . 'phpmailer_config.php';
+        $path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'phpmailer_config.php';
         $cache = (is_file($path) && is_readable($path)) ? require $path : [];
         if (!is_array($cache)) {
                 $cache = [];
@@ -130,7 +130,7 @@ function vride_send_via_phpmailer(string $to, string $subject, string $html, str
                 return false;
         }
 
-        $autoload = __DIR__ . '/vendor/autoload.php';
+        $autoload = dirname(__DIR__) . '/vendor/autoload.php';
         if (!is_file($autoload)) {
                 error_log('VRide PHPMailer: vendor/autoload.php not found. Run composer install.');
                 return false;
@@ -180,7 +180,7 @@ function vride_sendgrid_config(): array
         if ($cache !== null) {
                 return $cache;
         }
-        $path = __DIR__ . DIRECTORY_SEPARATOR . 'sendgrid_config.php';
+        $path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'sendgrid_config.php';
         $cache = (is_file($path) && is_readable($path)) ? require $path : [];
         if (!is_array($cache)) {
                 $cache = [];
@@ -416,7 +416,7 @@ function vride_emailjs_config(): array
     if ($cache !== null) {
         return $cache;
     }
-    $path = __DIR__ . DIRECTORY_SEPARATOR . 'emailjs_config.php';
+    $path = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'emailjs_config.php';
     $cache = (is_file($path) && is_readable($path)) ? require $path : [];
     if (!is_array($cache)) {
         $cache = [];

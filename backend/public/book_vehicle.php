@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 $pageTitle = 'Book Vehicle — VRide';
 if (!isLoggedIn()) { flash('Please login to book.','error'); redirect('login.php'); }
 

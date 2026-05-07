@@ -2,8 +2,8 @@
 /**
  * JSON API for admin panel — snapshot polling + AJAX mutations (no full page reload).
  */
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/admin_lib.php';
+require_once dirname(__DIR__) . '/lib/db.php';
+require_once dirname(__DIR__) . '/lib/admin_lib.php';
 
 header('Content-Type: application/json; charset=utf-8');
 $jsonFlags = (defined('JSON_INVALID_UTF8_SUBSTITUTE') ? JSON_INVALID_UTF8_SUBSTITUTE : 0)

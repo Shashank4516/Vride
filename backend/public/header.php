@@ -238,6 +238,6 @@ document.addEventListener('mouseover', e => {
   }
 });
 </script>
-<?php include __DIR__ . '/firebase_script.php'; ?>
+<?php include dirname(__DIR__) . '/lib/firebase_script.php'; ?>
 
 

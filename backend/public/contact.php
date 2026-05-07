@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 $pageTitle = 'Contact — VRide';
 $sent = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') { $sent = true; }

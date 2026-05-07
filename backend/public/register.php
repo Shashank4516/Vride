@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 $pageTitle = 'Sign Up — VRide';
 $error = '';
 
@@ -369,6 +369,6 @@ document.querySelector('form').addEventListener('submit', function() {
   btn.disabled = true;
 });
 </script>
-<?php include __DIR__ . '/firebase_auth_pages_script.php'; ?>
+<?php include dirname(__DIR__) . '/lib/firebase_auth_pages_script.php'; ?>
 </body>
 </html>

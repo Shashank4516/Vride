@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 
 if (isLoggedIn()) {
     redirect('index.php');
@@ -750,7 +750,7 @@ function toggleFaq(el) {
   }
 }
 </script>
-<?php include __DIR__ . '/firebase_script.php'; ?>
+<?php include dirname(__DIR__) . '/lib/firebase_script.php'; ?>
 
 </body>
 </html>

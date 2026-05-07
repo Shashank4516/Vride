@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once dirname(__DIR__) . '/lib/db.php';
 $pageTitle = 'Browse Fleet — VRide';
 
 $pdo = getDB();
