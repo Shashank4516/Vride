@@ -16,6 +16,7 @@ $pageTitle = 'VRide - Smart Rentals';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
   /* ══ TRUST BAR ══ */
@@ -88,12 +89,24 @@ a { color: inherit; text-decoration: none; }
 .logo {
   display: inline-flex;
   align-items: center;
+  gap: .35rem;
 }
 
 .logo img {
-  height: 58px;
+  height: 38px;
   width: auto;
   mix-blend-mode: screen;
+}
+.logo-text {
+  font-size: 1.48rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--wh);
+  font-family: 'Cinzel Decorative','Segoe UI',sans-serif;
+  line-height: 1;
+  margin-left: -0.35rem;
+  transform: translateY(7px);
 }
 
 .nav-links {
@@ -464,7 +477,8 @@ a { color: inherit; text-decoration: none; }
 <header class="nav">
   <div class="wrap nav-inner">
     <a href="home.php" class="logo">
-      <img src="img/logo.png" alt="VRide">
+      <img src="img/lo.png" alt="VRide">
+        <span class="logo-text">Ride</span>
     </a>
     <ul class="nav-links">
       <li><a href="home.php">HOME</a></li>
@@ -634,7 +648,7 @@ a { color: inherit; text-decoration: none; }
   <div class="wrap">
     <div class="f-top">
       <div class="f-col">
-        <a href="home.php" class="logo"><img src="img/logo.png" alt="VRide" style="height:62px; mix-blend-mode:screen;"></a>
+        <a href="home.php" class="logo"><img src="img/lo.png" alt="VRide" style="height:38px; mix-blend-mode:screen;"><span class="logo-text">Ride</span></a>
         <p style="margin-top:1.5rem; color:var(--tx2); line-height:1.7; font-weight:600;">Redefining luxury rentals in India. Experience the ride of your life with our premium fleet and seamless service.</p>
       </div>
       <div class="f-col">
@@ -736,6 +750,7 @@ function toggleFaq(el) {
   }
 }
 </script>
+<?php include __DIR__ . '/firebase_script.php'; ?>
 
 </body>
 </html>

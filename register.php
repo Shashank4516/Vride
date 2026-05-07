@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $pageTitle ?></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
@@ -63,7 +66,19 @@ a { text-decoration: none; color: inherit; }
   background:rgba(15,17,23,0.95); border-bottom:1px solid rgba(255,255,255,0.07);
   backdrop-filter:blur(12px);
 }
+.top-bar-logo { display:inline-flex; align-items:center; gap:.35rem; }
 .top-bar-logo img { height:42px; width:auto; mix-blend-mode:screen; }
+.logo-text {
+  font-size:1.48rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:#fff;
+  font-family:'Cinzel Decorative','Segoe UI',sans-serif;
+  line-height:1;
+  margin-left:-0.35rem;
+  transform:translateY(7px);
+}
 .top-bar-nav { display:flex; align-items:center; gap:1.5rem; }
 .top-bar-nav a { font-size:.82rem; font-weight:500; color:rgba(226,232,240,.55); transition:color .2s; }
 .top-bar-nav a:hover { color:#e2e8f0; }
@@ -212,7 +227,7 @@ a { text-decoration: none; color: inherit; }
 
 <header class="top-bar">
   <a href="index.php" class="top-bar-logo">
-    <img src="img/logo.png" alt="VRide" fetchpriority="high">
+    <img src="img/lo.png" alt="VRide" fetchpriority="high"><span class="logo-text">Ride</span>
   </a>
   
   <div class="top-bar-cta">
@@ -255,9 +270,11 @@ a { text-decoration: none; color: inherit; }
       </div>
       <?php endif; ?>
 
+      <div id="firebase-auth-alert" class="alert alert-error" role="alert" style="display:none;"></div>
+
       <!-- Social sign-up -->
       <div class="social-row">
-        <a href="login.php?social=google" class="social-btn">
+        <button type="button" id="firebase-google-register" class="social-btn">
           <svg width="17" height="17" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -265,7 +282,7 @@ a { text-decoration: none; color: inherit; }
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
           Sign up with Google
-        </a>
+        </button>
         <a href="login.php?social=facebook" class="social-btn">
           <i class="fab fa-facebook-f" style="color:#1877F2;font-size:.95rem;"></i> Facebook
         </a>
@@ -352,5 +369,6 @@ document.querySelector('form').addEventListener('submit', function() {
   btn.disabled = true;
 });
 </script>
+<?php include __DIR__ . '/firebase_auth_pages_script.php'; ?>
 </body>
 </html>

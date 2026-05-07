@@ -3,7 +3,12 @@ require_once 'db.php';
 $pageTitle = 'Book Vehicle — VRide';
 if (!isLoggedIn()) { flash('Please login to book.','error'); redirect('login.php'); }
 
-$vid = intval($_GET['id'] ?? 1);
+/* Invalid or empty ?id= yields intval 0 and can match garbage rows → false "always booked" errors. */
+$vid = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+if ($vid < 1) {
+  $vid = 1;
+}
+$titleHint = trim((string)($_GET['t'] ?? $_GET['title'] ?? ''));
 $pdo = getDB();
 $vehicle = null;
 if ($pdo) {
@@ -11,15 +16,63 @@ if ($pdo) {
     $stmt->execute([$vid]);
     $vehicle = $stmt->fetch();
 }
+// Check if the vehicle is currently booked (approved booking overlaps today)
+$isBookedNow = false;
+$bookedUntil = null;
+if ($pdo && $vehicle && !empty($vehicle['id'])) {
+  $bookedStmt = $pdo->prepare("SELECT return_date FROM bookings WHERE vehicle_id=? AND status='approved' AND CURDATE() BETWEEN pickup_date AND return_date ORDER BY return_date DESC LIMIT 1");
+  $bookedStmt->execute([$vehicle['id']]);
+  $bookedUntil = $bookedStmt->fetchColumn();
+  $isBookedNow = !empty($bookedUntil);
+}
 // Demo fallback
 if (!$vehicle) {
-    $vehicle = ["id"=>$vid,"title"=>"Royal Enfield Classic 350","type"=>"2wheeler","category"=>"Bike","city"=>"Mumbai","final_price"=>350,"price_per_day"=>350,"model"=>"RE Classic","image"=>"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80","description"=>"Classic cruiser with timeless design.","damage_charge"=>500,"extra_hour_charge"=>50,"terms"=>"Fuel not included. Return clean.","owner_name"=>"VRide Fleet"];
+    // If DB is empty (or vehicle not approved yet), fall back to a small demo catalog
+    // keyed by id so the booking form still matches the clicked vehicle.
+    $demoCatalog = [
+        1 => ["id"=>1,"title"=>"Royal Enfield Classic 350","type"=>"2wheeler","category"=>"Cruiser","city"=>"Mumbai","final_price"=>350,"price_per_day"=>350,"model"=>"Classic 350","image"=>"img/re_classic/side.png","description"=>"Iconic cruiser, perfect for long highway rides. Smooth engine, comfortable seat.","damage_charge"=>500,"extra_hour_charge"=>50,"terms"=>"Fuel not included. Return clean.","owner_name"=>"VRide Fleet"],
+        2 => ["id"=>2,"title"=>"Yamaha MT-15","type"=>"2wheeler","category"=>"Sport","city"=>"Bangalore","final_price"=>450,"price_per_day"=>450,"model"=>"MT-15","image"=>"https://images.unsplash.com/photo-1547549082-6bc09f2049ae?w=800&q=80","description"=>"Aggressive naked sport. Best for city thrill riders who want agility.","damage_charge"=>800,"extra_hour_charge"=>80,"terms"=>"Full gear required. No highway night riding.","owner_name"=>"VRide Fleet"],
+        3 => ["id"=>3,"title"=>"Honda Activa 6G","type"=>"2wheeler","category"=>"Scooter","city"=>"Pune","final_price"=>200,"price_per_day"=>200,"model"=>"Activa 6G","image"=>"https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=800&q=80","description"=>"Reliable everyday scooter, easy to ride and very fuel efficient.","damage_charge"=>300,"extra_hour_charge"=>30,"terms"=>"Helmet provided. Return with same fuel level.","owner_name"=>"VRide Fleet"],
+        4 => ["id"=>4,"title"=>"KTM Duke 390","type"=>"2wheeler","category"=>"Sport","city"=>"Delhi","final_price"=>600,"price_per_day"=>600,"model"=>"Duke 390","image"=>"https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=800&q=80","description"=>"High-performance naked bike. Aggressive handling and strong brakes.","damage_charge"=>1200,"extra_hour_charge"=>100,"terms"=>"Valid license required. No pillion on highways.","owner_name"=>"VRide Fleet"],
+        5 => ["id"=>5,"title"=>"Toyota Innova Crysta","type"=>"4wheeler","category"=>"SUV","city"=>"Delhi","final_price"=>2500,"price_per_day"=>2500,"model"=>"Innova Crysta","image"=>"https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80","description"=>"Spacious 7-seater, ideal for family trips and corporate travel.","damage_charge"=>2000,"extra_hour_charge"=>200,"terms"=>"Driver not included. Return clean.","owner_name"=>"VRide Fleet"],
+        6 => ["id"=>6,"title"=>"Mahindra Thar","type"=>"4wheeler","category"=>"Off-Road","city"=>"Goa","final_price"=>3000,"price_per_day"=>3000,"model"=>"Thar 4x4","image"=>"https://images.unsplash.com/photo-1723306975792-f5a053a59dd3?q=80&w=1200&auto=format&fit=crop","description"=>"Open-top 4x4 built for adventure. Beaches, trails, hills — it handles all.","damage_charge"=>3000,"extra_hour_charge"=>250,"terms"=>"4WD lock for off-road only. Return mud-free.","owner_name"=>"VRide Fleet"],
+        7 => ["id"=>7,"title"=>"Mercedes E-Class","type"=>"4wheeler","category"=>"Luxury","city"=>"Mumbai","final_price"=>4500,"price_per_day"=>4500,"model"=>"E-Class 2023","image"=>"https://images.unsplash.com/photo-1563720223185-11003d516935?w=1200&q=80","description"=>"Executive luxury sedan. Perfect for events, weddings, and business travel.","damage_charge"=>5000,"extra_hour_charge"=>400,"terms"=>"No smoking. Must return spotless.","owner_name"=>"VRide Fleet"],
+        8 => ["id"=>8,"title"=>"Swift Dzire","type"=>"4wheeler","category"=>"Sedan","city"=>"Chennai","final_price"=>1200,"price_per_day"=>1200,"model"=>"Dzire 2022","image"=>"https://images.unsplash.com/photo-1541443131876-44b03de101c3?w=1200&q=80","description"=>"Comfortable compact sedan. Great mileage, smooth drive for city and highway.","damage_charge"=>1000,"extra_hour_charge"=>100,"terms"=>"Fuel not included. Return with full tank.","owner_name"=>"VRide Fleet"],
+    ];
+
+    // If the click originated from a demo card (index/vehicles), prefer matching by title hint.
+    $keyByTitle = [];
+    foreach ($demoCatalog as $it) {
+        $k = strtolower(trim((string)($it['title'] ?? '')));
+        if ($k !== '') $keyByTitle[$k] = $it;
+    }
+
+    $hintKey = strtolower($titleHint);
+    $vehicle =
+        ($hintKey !== '' && isset($keyByTitle[$hintKey])) ? $keyByTitle[$hintKey] :
+        ($demoCatalog[$vid] ?? ["id"=>$vid,"title"=>($titleHint ?: "Demo Vehicle"),"type"=>"2wheeler","category"=>"Vehicle","city"=>"Mumbai","final_price"=>500,"price_per_day"=>500,"model"=>"Demo","image"=>"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80","description"=>"Demo vehicle used when database is empty.","damage_charge"=>500,"extra_hour_charge"=>50,"terms"=>"Fuel not included. Return clean.","owner_name"=>"VRide Fleet"]);
 }
+
+// Homepage / fleet links pass ?t=name so the heading matches the card the user clicked. Prefer that over DB title when IDs collide (e.g. demo cards id 1–8 vs real rows).
+$dbTitleTrim = trim((string)($vehicle['title'] ?? ''));
+$displayTitle = $titleHint !== '' ? $titleHint : ($dbTitleTrim !== '' ? $dbTitleTrim : 'Vehicle');
+if (strlen($displayTitle) > 200) {
+  $displayTitle = substr($displayTitle, 0, 200);
+}
+
+$rawTypeHint = strtolower(trim((string)($_GET['type'] ?? '')));
+$effectiveType = in_array($rawTypeHint, ['2wheeler', '4wheeler'], true)
+  ? $rawTypeHint
+  : (((($vehicle['type'] ?? '') === '4wheeler')) ? '4wheeler' : '2wheeler');
+
+$categoryLine = ($effectiveType === '4wheeler')
+  ? 'CAR · 4 WHEELER'
+  : 'BIKE · 2 WHEELER';
 
 $reClassicImage = 'https://images.pexels.com/photos/2611684/pexels-photo-2611684.jpeg?auto=compress&cs=tinysrgb&w=1200';
 $default2wImage = 'https://images.pexels.com/photos/2393835/pexels-photo-2393835.jpeg?auto=compress&cs=tinysrgb&w=1200';
 $default4wImage = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&q=80';
-$imageFallback = (($vehicle['type'] ?? '') === '2wheeler') ? $default2wImage : $default4wImage;
+$imageFallback = ($effectiveType === '2wheeler') ? $default2wImage : $default4wImage;
 
 $localReClassicPublic = 'img/re_classic/side.png';
 $localReClassicFile = __DIR__ . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 're_classic' . DIRECTORY_SEPARATOR . 'side.png';
@@ -43,6 +96,19 @@ if (str_contains($titleLower, 'royal enfield') || str_contains($titleLower, 'cla
 if ($vehicleImage === '') {
   $vehicleImage = $imageFallback;
 }
+
+$imgHintSanitized = '';
+if (isset($_GET['img'])) {
+  $u = trim((string)$_GET['img']);
+  if ($u !== '' && !preg_match('#^javascript:#i', $u) && !preg_match('#^data:#i', $u)) {
+    if (filter_var($u, FILTER_VALIDATE_URL) && preg_match('#^https?://#i', $u)) {
+      $imgHintSanitized = $u;
+    } elseif ((str_starts_with($u, 'img/') || str_starts_with($u, './img/')) && !str_contains($u, '..')) {
+      $imgHintSanitized = $u;
+    }
+  }
+}
+$displayVehicleImage = $imgHintSanitized !== '' ? $imgHintSanitized : $vehicleImage;
 
 $success = false;
 $bookingRef = '';
@@ -72,18 +138,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($pdo) {
       try {
+        // Inclusive date overlap: intervals share a day iff existing.pickup <= new.return AND existing.return >= new.pickup
+        // Skip rows with NULL dates or inverted ranges (bad data) so they cannot block every booking.
+        $overlap = $pdo->prepare(
+            "SELECT COUNT(*) FROM bookings WHERE vehicle_id = ? AND status = 'approved'
+             AND pickup_date IS NOT NULL AND return_date IS NOT NULL
+             AND pickup_date <= return_date
+             AND pickup_date <= ? AND return_date >= ?"
+        );
+        $overlap->execute([$vid, $returnDate, $pickupDate]);
+        if ((int)$overlap->fetchColumn() > 0) {
+          $error = 'This vehicle is already booked for the selected dates. Please choose different dates.';
+        }
+
+        if (!$error) {
         // Ensure the vehicle exists in the database to satisfy the Foreign Key constraint for the demo fallback.
         $checkV = $pdo->prepare("SELECT id FROM vehicles WHERE id=?");
         $checkV->execute([$vid]);
         if (!$checkV->fetch()) {
              // Insert a placeholder vehicle to prevent FK constraint failure
              $pdo->prepare("INSERT INTO vehicles (id, title, type, category, city, price_per_day, final_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'approved')")
-                 ->execute([$vid, $vehicle['title']??'Demo Vehicle', $vehicle['type']??'2wheeler', $vehicle['category']??'Bike', $vehicle['city']??'Mumbai', $vehicle['price_per_day']??500, $vehicle['final_price']??500]);
+                 ->execute([$vid, $displayTitle ?: ($vehicle['title']??'Demo Vehicle'), $vehicle['type']??'2wheeler', $vehicle['category']??'Bike', $vehicle['city']??'Mumbai', $vehicle['price_per_day']??500, $vehicle['final_price']??500]);
         }
 
         $stmt = $pdo->prepare("INSERT INTO bookings (user_id,vehicle_id,pickup_date,return_date,days,amount,final_amount,addons,payment_method,status) VALUES (?,?,?,?,?,?,?,?,?,'pending')");
         $stmt->execute([$_SESSION['user_id'],$vid,$pickupDate,$returnDate,$days,$amount,$amount,json_encode($_POST['addons']??[]),$_POST['payment']??'cash']);
         $success = true;
+        }
       } catch (PDOException $e) {
         $error = 'Could not save booking to database. Error: ' . $e->getMessage();
       }
@@ -130,6 +211,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .fstep-t{font-family:inherit;font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--white);margin-bottom:.3rem;}
 .fstep-d{font-size:.76rem;color:var(--txt2);line-height:1.5;}
 @media(max-width:850px){.bv-inner{grid-template-columns:1fr;}.sticky-summary{position:static;}.flow-steps{grid-template-columns:1fr;}}
+.bv-form-preview-wrap{margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,.06);}
+.bv-form-preview{border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:var(--bg3);aspect-ratio:16/10;max-height:240px;}
+.bv-form-preview img{width:100%;height:100%;object-fit:cover;display:block;vertical-align:top;}
+.bv-form-head{margin-top:1rem;}
+.bv-form-head .sum-vcat{font-size:.58rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);margin-bottom:.35rem;}
+.bv-form-head .sum-vname{font-size:1.2rem;font-weight:700;color:var(--white);line-height:1.2;}
 </style>
 <div class="bv-wrap">
   <?php if ($success): ?>
@@ -151,13 +238,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div>
       <div class="sec-label">Reserve Your Ride</div>
       <div class="sec-h" style="margin-bottom:2rem;">BOOKING <span class="dim">FORM</span></div>
+      <?php if ($isBookedNow): ?>
+      <div style="margin-bottom:1rem;padding:.9rem 1rem;border:1px solid rgba(255,56,96,.35);background:rgba(255,56,96,.08);color:#ffd5de;font-size:.82rem;">
+        This vehicle is currently booked<?= $bookedUntil ? ' until '.htmlspecialchars($bookedUntil) : '' ?>. You can only request dates after it becomes available.
+      </div>
+      <?php endif; ?>
       <?php if (!empty($error)): ?>
       <div style="margin-bottom:1rem;padding:.9rem 1rem;border:1px solid rgba(255,56,96,.35);background:rgba(255,56,96,.08);color:#ffd5de;font-size:.82rem;">
         <?= htmlspecialchars($error) ?>
       </div>
       <?php endif; ?>
       <div class="form-card">
-        <form method="POST" action="book_vehicle.php?id=<?= $vid ?>">
+        <?php
+        $bookActionQs = ['id' => $vid, 't' => $displayTitle, 'type' => $effectiveType];
+        if ($imgHintSanitized !== '') {
+          $bookActionQs['img'] = $imgHintSanitized;
+        }
+        $bookAction = 'book_vehicle.php?' . http_build_query($bookActionQs, '', '&', PHP_QUERY_RFC3986);
+        ?>
+        <form method="POST" action="<?= htmlspecialchars($bookAction, ENT_QUOTES, 'UTF-8') ?>">
+          <div class="bv-form-preview-wrap">
+            <div class="bv-form-preview">
+              <img src="<?= htmlspecialchars($displayVehicleImage, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($displayTitle, ENT_QUOTES, 'UTF-8') ?>" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='<?= htmlspecialchars($imageFallback, ENT_QUOTES, 'UTF-8') ?>';}else{this.onerror=null;this.style.display='none';}">
+            </div>
+            <div class="bv-form-head">
+              <div class="sum-vcat"><?= htmlspecialchars($categoryLine) ?></div>
+              <div class="sum-vname"><?= htmlspecialchars($displayTitle) ?></div>
+            </div>
+          </div>
           <div class="form-section-title"><i class="fas fa-user"></i> Your Details</div>
           <div class="form-row">
             <div class="form-group"><label>Full Name *</label><input type="text" name="name" value="<?= htmlspecialchars($_SESSION['name']??'') ?>" required></div>
@@ -210,12 +318,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="sticky-summary">
       <div class="sum-card">
         <div class="sum-img">
-          <img src="<?= htmlspecialchars($vehicleImage) ?>" alt="Vehicle" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='<?= htmlspecialchars($imageFallback) ?>';}else{this.onerror=null;this.style.display='none';}">
+          <img src="<?= htmlspecialchars($displayVehicleImage, ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($displayTitle, ENT_QUOTES, 'UTF-8') ?>" onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='<?= htmlspecialchars($imageFallback, ENT_QUOTES, 'UTF-8') ?>';}else{this.onerror=null;this.style.display='none';}">
           <div class="sum-img-ov"></div>
         </div>
         <div class="sum-body">
-          <div class="sum-vcat"><?= htmlspecialchars($vehicle['category']??'') ?> · <?= $vehicle['type']==='2wheeler'?'2 Wheeler':'4 Wheeler' ?></div>
-          <div class="sum-vname"><?= htmlspecialchars($vehicle['title']) ?></div>
+          <div class="sum-vcat"><?= htmlspecialchars($categoryLine) ?></div>
+          <div class="sum-vname"><?= htmlspecialchars($displayTitle) ?></div>
           <div class="sum-rows">
             <div class="sum-row"><span class="sum-row-l">Daily Rate</span><span class="sum-row-v">₹<?= number_format($vehicle['final_price']??$vehicle['price_per_day']) ?></span></div>
             <div class="sum-row"><span class="sum-row-l">Duration</span><span class="sum-row-v" id="durLabel">—</span></div>

@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $pageTitle ?? 'VRide — Vehicle Rentals' ?></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://images.unsplash.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -51,8 +54,19 @@ a { text-decoration:none; color:inherit; }
   border-bottom:1px solid rgba(26,140,255,0.14);
 }
 #mn.scrolled { background:rgba(5,7,9,1); }
-.nl { display:flex; align-items:center; gap:1.2rem; }
+.nl { display:flex; align-items:center; gap:0.35rem; }
 .logo-img { height:38px; width:auto; display:block; mix-blend-mode:screen; }
+.logo-text {
+  font-size:1.48rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--white);
+  font-family:'Cinzel Decorative','Segoe UI',sans-serif;
+  line-height:1;
+  margin-left:-0.35rem;
+  transform:translateY(7px);
+}
 .nav-links { display:flex; gap:2.2rem; list-style:none; justify-content:center; }
 .nav-links a { color:var(--txt2); font-weight:500; font-size:0.82rem; transition:color 0.2s; position:relative; }
 .nav-links a:hover, .nav-links a.on { color:#fff; }
@@ -69,6 +83,7 @@ a { text-decoration:none; color:inherit; }
   #mn { padding:0.9rem 1.5rem; height:auto; display:flex; justify-content:space-between; }
   .nav-links { display:none; }
   .logo-img { height:30px; }
+  .logo-text { font-size:1.28rem; letter-spacing:.05em; margin-left:-0.3rem; transform:translateY(7px); }
 }
 
 /* ── FLASH ────────────────────────────────────────── */
@@ -158,13 +173,28 @@ textarea { resize:vertical; min-height:90px; }
   /* Show hamburger hint if needed */
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  (function(){
+    var key = 'I08M-_Yllx7JgUTso';
+    if (window.emailjs && typeof emailjs.init === 'function') {
+      try { emailjs.init(key); } catch (e) { console.warn('emailjs.init failed', e); }
+    } else {
+      window.addEventListener('load', function(){
+        if (window.emailjs && typeof emailjs.init === 'function') {
+          try { emailjs.init(key); } catch (e) { console.warn('emailjs.init failed', e); }
+        }
+      });
+    }
+  })();
+</script>
 </head>
 <body>
 
 <!-- ── SIDEBAR ── -->
 <!-- NAV -->
 <nav id="mn">
-  <a href="index.php" class="nl"><img src="img/logo.png" alt="VRide" class="logo-img" fetchpriority="high"></a>
+            <a href="index.php" class="nl"><img src="img/lo.png" alt="VRide" class="logo-img" fetchpriority="high"><span class="logo-text">Ride</span></a>
   <ul class="nav-links">
     <li><a href="index.php" <?= basename($_SERVER['PHP_SELF'])=='index.php'?'class="on"':'' ?>>Home</a></li>
     <li><a href="vehicles.php" <?= basename($_SERVER['PHP_SELF'])=='vehicles.php'?'class="on"':'' ?>>Fleet</a></li>
@@ -208,5 +238,6 @@ document.addEventListener('mouseover', e => {
   }
 });
 </script>
+<?php include __DIR__ . '/firebase_script.php'; ?>
 
 

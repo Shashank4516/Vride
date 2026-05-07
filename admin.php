@@ -1,59 +1,37 @@
 <?php
 require_once 'db.php';
+require_once __DIR__ . '/admin_lib.php';
+
 $pageTitle = 'Admin Panel — VRide';
-if (!isAdmin()) { flash('Admin access required.','error'); redirect('login.php'); }
+if (!isAdmin()) {
+    flash('Admin access required.', 'error');
+    redirect('login.php');
+}
 
 $pdo = getDB();
-$tab = $_GET['tab'] ?? 'dashboard';
-//Handle admin actions
+$tab = preg_replace('/[^a-z_]/', '', $_GET['tab'] ?? 'dashboard') ?: 'dashboard';
+
+/** Classic POST (no JS) — same mutations as admin_api.php */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action = $_POST['action'] ?? '';
-    if ($action === 'approve_vehicle' && $pdo){
-        $id = intval($_POST['id']);
-        $price = floatval($_POST['final_price']);   
-        $note  = trim($_POST['note'] ?? '');
-        $pdo->prepare("UPDATE vehicles SET status='approved', final_price=? WHERE id=?")->execute([$price,$id]);
-        flash("Vehicle approved with price ₹$price/day!");
-    } elseif ($action === 'reject_vehicle' && $pdo) {
-        $id = intval($_POST['id']);
-        $pdo->prepare("UPDATE vehicles SET status='rejected' WHERE id=?")->execute([$id]);
-        flash("Vehicle rejected.",'error');
-    } elseif ($action === 'approve_booking' && $pdo) {
-        $id = intval($_POST['id']);
-        $final = floatval($_POST['final_amount']);
-        $note  = trim($_POST['note'] ?? '');
-        $pdo->prepare("UPDATE bookings SET status='approved', final_amount=?, admin_note=? WHERE id=?")->execute([$final,$note,$id]);
-        flash("Booking approved! Final amount: ₹$final");
-    } elseif ($action === 'reject_booking' && $pdo) {
-        $id = intval($_POST['id']);
-        $pdo->prepare("UPDATE bookings SET status='rejected' WHERE id=?")->execute([$id]);
-        flash("Booking rejected.",'error');
-    } elseif ($action === 'complete_booking' && $pdo) {
-        $id = intval($_POST['id']);
-        $pdo->prepare("UPDATE bookings SET status='completed' WHERE id=?")->execute([$id]);
-        flash("Booking marked as completed!");
+    parse_str(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY) ?: '', $qsMerge);
+    if (empty($_POST['tab']) && !empty($qsMerge['tab'])) {
+        $_POST['tab'] = $qsMerge['tab'];
     }
-    redirect("admin.php?tab=$tab");
+    $res = admin_run_action($pdo, $_POST);
+    if ($res['ok']) {
+        flash($res['message'], $res['type'] === 'error' ? 'error' : 'success');
+    } else {
+        flash($res['message'], 'error');
+    }
+    redirect('admin.php?tab=' . rawurlencode($res['tab']));
 }
 
-// Fetch data
-$stats = ['total_vehicles'=>0,'pending_v'=>0,'total_bookings'=>0,'pending_b'=>0,'users'=>0];
-$pendingVehicles = $pendingBookings = $allVehicles = $allBookings = [];
-
-if ($pdo) {
-    $stats['total_vehicles'] = $pdo->query("SELECT COUNT(*) FROM vehicles")->fetchColumn();
-    $stats['pending_v']      = $pdo->query("SELECT COUNT(*) FROM vehicles WHERE status='pending'")->fetchColumn();
-    $stats['total_bookings'] = $pdo->query("SELECT COUNT(*) FROM bookings")->fetchColumn();
-    $stats['pending_b']      = $pdo->query("SELECT COUNT(*) FROM bookings WHERE status='pending'")->fetchColumn();
-    $stats['users']          = $pdo->query("SELECT COUNT(*) FROM users WHERE role='user'")->fetchColumn();
-    $pendingVehicles = $pdo->query("SELECT v.*,u.name as owner_name,u.phone as owner_phone FROM vehicles v LEFT JOIN users u ON v.owner_id=u.id WHERE v.status='pending' ORDER BY v.created_at DESC")->fetchAll();
-    $pendingBookings = $pdo->query("SELECT b.*,u.name as user_name,u.phone as user_phone,v.title as v_title,v.type as v_type,v.final_price FROM bookings b LEFT JOIN users u ON b.user_id=u.id LEFT JOIN vehicles v ON b.vehicle_id=v.id WHERE b.status='pending' ORDER BY b.created_at DESC")->fetchAll();
-    $allVehicles     = $pdo->query("SELECT v.*,u.name as owner_name FROM vehicles v LEFT JOIN users u ON v.owner_id=u.id ORDER BY v.created_at DESC LIMIT 30")->fetchAll();
-    $allBookings     = $pdo->query("SELECT b.*,u.name as user_name,v.title as v_title FROM bookings b LEFT JOIN users u ON b.user_id=u.id LEFT JOIN vehicles v ON b.vehicle_id=v.id ORDER BY b.created_at DESC LIMIT 30")->fetchAll();
-} else {
-    // Demo stats
-    $stats = ['total_vehicles'=>12,'pending_v'=>3,'total_bookings'=>28,'pending_b'=>5,'users'=>45];
-}
+$d = admin_fetch_data($pdo);
+$stats = $d['stats'];
+$pendingVehicles = $d['pendingVehicles'];
+$pendingBookings = $d['pendingBookings'];
+$allVehicles = $d['allVehicles'];
+$allBookings = $d['allBookings'];
 ?>
 <?php include 'header.php'; ?>
 <style>
@@ -120,8 +98,22 @@ if ($pdo) {
 
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:600px){.adm-sidebar{display:none;}.adm-wrap{padding-left:0;}.stats-grid{grid-template-columns:1fr 1fr;}}
+
+.adm-live-dot{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--success);font-weight:700;letter-spacing:.06em;}
+.adm-live-dot[data-syncing="1"]{color:var(--warn);}
+.adm-toast{
+  position:fixed;bottom:1.25rem;right:1.25rem;max-width:min(380px,calc(100vw - 2rem));
+  padding:.78rem 1.05rem;border-radius:11px;font-size:.82rem;font-weight:600;line-height:1.45;
+  box-shadow:0 14px 44px rgba(0,0,0,.48);z-index:50000;
+  opacity:0;pointer-events:none;transform:translateY(14px);transition:opacity .22s ease,transform .22s ease;
+}
+.adm-toast.show{opacity:1;transform:none;pointer-events:auto;}
+.adm-toast-ok{border:1px solid rgba(0,199,122,.38);background:rgba(0,199,122,.12);color:var(--success);}
+.adm-toast-error{border:1px solid rgba(232,54,93,.38);background:rgba(232,54,93,.1);color:var(--danger);}
 </style>
 
+<div id="adm-root" data-tab="<?= htmlspecialchars($tab, ENT_QUOTES, 'UTF-8') ?>">
+<div id="adm-toast" class="adm-toast" role="status" aria-live="polite"></div>
 <div class="adm-wrap">
   <!-- ADMIN SIDEBAR NAV -->
   <div class="adm-sidebar">
@@ -132,12 +124,15 @@ if ($pdo) {
     </div>
     <nav class="adm-nav">
       <div class="adm-nav-title">Overview</div>
-      <a href="admin.php?tab=dashboard" class="<?= $tab==='dashboard'?'on':'' ?>"><i class="fas fa-chart-line"></i> Dashboard</a>
+      <a href="admin.php?tab=dashboard" class="adm-live-tab <?= $tab==='dashboard'?'on':'' ?>" data-tab="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
       <div class="adm-nav-title">Manage</div>
-      <a href="admin.php?tab=vehicles" class="<?= $tab==='vehicles'?'on':'' ?>"><i class="fas fa-car"></i> All Vehicles <?php if($stats['pending_v']>0): ?><span style="background:var(--blue);color:#000;padding:.1rem .4rem;border-radius:10px;font-size:.6rem;"><?= $stats['pending_v'] ?></span><?php endif; ?></a>
-      <a href="admin.php?tab=bookings" class="<?= $tab==='bookings'?'on':'' ?>"><i class="fas fa-list"></i> All Bookings <?php if($stats['pending_b']>0): ?><span style="background:var(--blue);color:#000;padding:.1rem .4rem;border-radius:10px;font-size:.6rem;"><?= $stats['pending_b'] ?></span><?php endif; ?></a>
-      <a href="admin.php?tab=pending_v" class="<?= $tab==='pending_v'?'on':'' ?>"><i class="fas fa-hourglass-end"></i> Pending Vehicles</a>
-      <a href="admin.php?tab=pending_b" class="<?= $tab==='pending_b'?'on':'' ?>"><i class="fas fa-hourglass-end"></i> Pending Bookings</a>
+      <?php $pv = (int)$stats['pending_v']; $pb = (int)$stats['pending_b']; ?>
+      <a href="admin.php?tab=vehicles" class="adm-live-tab <?= $tab==='vehicles'?'on':'' ?>" data-tab="vehicles"><i class="fas fa-car"></i> All Vehicles
+        <span data-adm-badge="pending_v" style="<?= $pv>0 ? '' : 'display:none;' ?>background:var(--blue);color:#000;padding:.1rem .4rem;border-radius:10px;font-size:.6rem;margin-left:.35rem;"><?= $pv ?></span></a>
+      <a href="admin.php?tab=bookings" class="adm-live-tab <?= $tab==='bookings'?'on':'' ?>" data-tab="bookings"><i class="fas fa-list"></i> All Bookings
+        <span data-adm-badge="pending_b" style="<?= $pb>0 ? '' : 'display:none;' ?>background:var(--blue);color:#000;padding:.1rem .4rem;border-radius:10px;font-size:.6rem;margin-left:.35rem;"><?= $pb ?></span></a>
+      <a href="admin.php?tab=pending_v" class="adm-live-tab <?= $tab==='pending_v'?'on':'' ?>" data-tab="pending_v"><i class="fas fa-hourglass-end"></i> Pending Vehicles</a>
+      <a href="admin.php?tab=pending_b" class="adm-live-tab <?= $tab==='pending_b'?'on':'' ?>" data-tab="pending_b"><i class="fas fa-hourglass-end"></i> Pending Bookings</a>
       <div class="adm-nav-title">Site</div>
       <a href="index.php">🏠 View Site</a>
       <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -150,20 +145,22 @@ if ($pdo) {
       <div class="adm-h">
         <?= ['dashboard'=>'<i class="fas fa-chart-line"></i> Dashboard','vehicles'=>'<i class="fas fa-car"></i> All Vehicles','bookings'=>'<i class="fas fa-list"></i> All Bookings','pending_v'=>'<i class="fas fa-hourglass-end"></i> Pending Vehicles','pending_b'=>'<i class="fas fa-hourglass-end"></i> Pending Bookings'][$tab] ?? 'Admin' ?>
       </div>
-      <div style="display:flex;gap:.6rem;">
+      <div style="display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;">
+        <span id="adm-live-indicator" class="adm-live-dot"><i class="fas fa-circle" style="font-size:.38rem;"></i> LIVE SYNC</span>
         <a href="index.php" class="btn btn-secondary btn-sm">View Site</a>
         <a href="logout.php" class="btn btn-danger btn-sm">Logout</a>
       </div>
     </div>
 
+<div id="adm-tab-body">
     <!-- DASHBOARD -->
     <?php if ($tab === 'dashboard'): ?>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-icon"><i class="fas fa-car"></i></div><div class="stat-n"><?= $stats['total_vehicles'] ?></div><div class="stat-l">Total Vehicles</div></div>
-      <div class="stat-card"><div class="stat-icon"><i class="fas fa-hourglass-end"></i></div><div class="stat-n" style="color:var(--warn)"><?= $stats['pending_v'] ?></div><div class="stat-l">Pending Vehicles</div></div>
-      <div class="stat-card"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-n"><?= $stats['total_bookings'] ?></div><div class="stat-l">Total Bookings</div></div>
-      <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-n" style="color:var(--warn)"><?= $stats['pending_b'] ?></div><div class="stat-l">Pending Bookings</div></div>
-      <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-n"><?= $stats['users'] ?></div><div class="stat-l">Users</div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-car"></i></div><div class="stat-n" data-adm-stat="total_vehicles"><?= (int)$stats['total_vehicles'] ?></div><div class="stat-l">Total Vehicles</div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-hourglass-end"></i></div><div class="stat-n" style="color:var(--warn)" data-adm-stat="pending_v"><?= (int)$stats['pending_v'] ?></div><div class="stat-l">Pending Vehicles</div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-list"></i></div><div class="stat-n" data-adm-stat="total_bookings"><?= (int)$stats['total_bookings'] ?></div><div class="stat-l">Total Bookings</div></div>
+      <div class="stat-card"><div class="stat-icon">🔔</div><div class="stat-n" style="color:var(--warn)" data-adm-stat="pending_b"><?= (int)$stats['pending_b'] ?></div><div class="stat-l">Pending Bookings</div></div>
+      <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-n" data-adm-stat="users"><?= (int)$stats['users'] ?></div><div class="stat-l">Users</div></div>
     </div>
     <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
       <div style="font-size:0.8rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#3B82F6; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
@@ -177,10 +174,10 @@ if ($pdo) {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
-      <div><div style="font-family:inherit;font-size:.75rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:.8rem;">Quick Actions</div>
+      <div>        <div style="font-family:inherit;font-size:.75rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:.8rem;">Quick Actions</div>
         <div style="display:flex;flex-direction:column;gap:.5rem;">
-          <a href="admin.php?tab=pending_v" class="btn btn-primary">Review Pending Vehicles</a>
-          <a href="admin.php?tab=pending_b" class="btn btn-secondary">Review Pending Bookings</a>
+          <a href="admin.php?tab=pending_v" class="btn btn-primary adm-live-tab" data-tab-link="pending_v">Review Pending Vehicles</a>
+          <a href="admin.php?tab=pending_b" class="btn btn-secondary adm-live-tab" data-tab-link="pending_b">Review Pending Bookings</a>
         </div>
       </div>
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:1.2rem;">
@@ -229,7 +226,7 @@ if ($pdo) {
         <i class="fas fa-info-circle" style="color:#3B82F6; margin-right:0.4rem;"></i> <?= htmlspecialchars($ai['note']) ?>
       </div>
       <div class="pc-actions">
-        <form method="POST" style="display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;">
+        <form method="POST" class="adm-ajax-form" style="display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;">
           <input type="hidden" name="action" value="approve_vehicle">
           <input type="hidden" name="id" value="<?= $v['id'] ?>">
           <div class="pc-price-input">
@@ -238,10 +235,10 @@ if ($pdo) {
           </div>
           <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Approve & Set Price</button>
         </form>
-        <form method="POST">
+        <form method="POST" class="adm-ajax-form">
           <input type="hidden" name="action" value="reject_vehicle">
           <input type="hidden" name="id" value="<?= $v['id'] ?>">
-          <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this vehicle?')"><i class="fas fa-xmark"></i> Reject</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-xmark"></i> Reject</button>
         </form>
       </div>
     </div>
@@ -273,7 +270,7 @@ if ($pdo) {
         <div class="pc-spec">Daily Rate: <span>₹<?= number_format($b['final_price']??0) ?></span></div>
       </div>
       <div class="pc-actions">
-        <form method="POST" style="display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;">
+        <form method="POST" class="adm-ajax-form" style="display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;">
           <input type="hidden" name="action" value="approve_booking">
           <input type="hidden" name="id" value="<?= $b['id'] ?>">
           <div class="pc-price-input">
@@ -282,10 +279,10 @@ if ($pdo) {
           </div>
           <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Approve</button>
         </form>
-        <form method="POST">
+        <form method="POST" class="adm-ajax-form">
           <input type="hidden" name="action" value="reject_booking">
           <input type="hidden" name="id" value="<?= $b['id'] ?>">
-          <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject this booking?')"><i class="fas fa-xmark"></i> Reject</button>
+          <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-xmark"></i> Reject</button>
         </form>
       </div>
     </div>
@@ -298,7 +295,7 @@ if ($pdo) {
     <p style="color:var(--txt2);padding:2rem 0;">No vehicles yet. Connect your database to see data.</p>
     <?php else: ?>
     <div style="overflow-x:auto;"><table class="tbl">
-      <thead><tr><th>Vehicle</th><th>Owner</th><th>Type</th><th>City</th><th>Price/day</th><th>Status</th></tr></thead>
+      <thead><tr><th>Vehicle</th><th>Owner</th><th>Type</th><th>City</th><th>Price/day</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
       <?php foreach($allVehicles as $v): ?>
       <tr>
@@ -308,6 +305,19 @@ if ($pdo) {
         <td><i class="fas fa-map-pin"></i> <?= htmlspecialchars($v['city']??'') ?></td>
         <td>₹<?= number_format($v['final_price']??$v['price_per_day']) ?></td>
         <td><span class="badge badge-<?= $v['status'] ?>"><?= strtoupper($v['status']) ?></span></td>
+        <td>
+          <form method="POST" class="adm-ajax-form" style="display:inline-flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+            <input type="hidden" name="action" value="approve_vehicle">
+            <input type="hidden" name="id" value="<?= $v['id'] ?>">
+            <input type="number" name="final_price" value="<?= $v['final_price']??$v['price_per_day'] ?>" min="1" style="width:95px;">
+            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Approve</button>
+          </form>
+          <form method="POST" class="adm-ajax-form" style="display:inline;">
+            <input type="hidden" name="action" value="reject_vehicle">
+            <input type="hidden" name="id" value="<?= $v['id'] ?>">
+            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-xmark"></i> Reject</button>
+          </form>
+        </td>
       </tr>
       <?php endforeach; ?>
       </tbody>
@@ -332,10 +342,10 @@ if ($pdo) {
         <td><span class="badge badge-<?= $b['status'] ?>"><?= strtoupper($b['status']) ?></span></td>
         <td>
           <?php if($b['status'] === 'approved'): ?>
-          <form method="POST" style="display:inline;">
+          <form method="POST" class="adm-ajax-form" style="display:inline;">
             <input type="hidden" name="action" value="complete_booking">
             <input type="hidden" name="id" value="<?= $b['id'] ?>">
-            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark as completed?')"><i class="fas fa-check-double"></i> Complete</button>
+            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check-double"></i> Complete</button>
           </form>
           <?php endif; ?>
         </td>
@@ -345,7 +355,36 @@ if ($pdo) {
     </table></div>
     <?php endif; ?>
     <?php endif; ?>
+</div><!-- #adm-tab-body -->
   </div>
 </div>
+<?php
+$__ej = [];
+if (is_file(__DIR__ . '/emailjs_config.php')) {
+    $__ej = require __DIR__ . '/emailjs_config.php';
+}
+if (!is_array($__ej)) {
+    $__ej = [];
+}
+$__ej_boot = json_encode([
+    'publicKey' => $__ej['public_key'] ?? '',
+    'serviceId' => $__ej['service_id'] ?? '',
+    'templateId' => $__ej['template_id_vehicle_approved'] ?? '',
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES);
+if ($__ej_boot === false) {
+    $__ej_boot = '{}';
+}
+?>
+<script type="application/json" id="vride-emailjs-boot"><?php echo $__ej_boot; ?></script>
+<script>
+window.__VRIDE_EMAILJS__ = {};
+try {
+  window.__VRIDE_EMAILJS__ = JSON.parse(document.getElementById('vride-emailjs-boot').textContent || '{}');
+} catch (_) {}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js" defer></script>
+<script src="js/email.js?v=3" defer></script>
+<script src="js/admin-realtime.js?v=4" defer></script>
+</div><!-- #adm-root -->
 </body>
 </html>

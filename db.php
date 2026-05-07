@@ -10,6 +10,20 @@ define('DB_PASS', '');           // Change to your MySQL password
 define('DB_NAME', 'vehicle_rental');
 define('DB_PORT', getenv('DB_PORT') ?: '3306');
 
+/** PDO options for MySQL — PHP 8.5+ deprecates PDO::MYSQL_ATTR_USE_BUFFERED_QUERY */
+function pdo_mysql_options(): array {
+    $opts = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ];
+    if (PHP_VERSION_ID >= 80500) {
+        $opts[\Pdo\Mysql::ATTR_USE_BUFFERED_QUERY] = true;
+    } else {
+        $opts[PDO::MYSQL_ATTR_USE_BUFFERED_QUERY] = true;
+    }
+    return $opts;
+}
+
 function getDB() {
     static $pdo = null;
     if ($pdo === null) {
@@ -17,9 +31,7 @@ function getDB() {
             $pdo = new PDO(
                 "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8",
                 DB_USER, DB_PASS,
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                  PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
+                pdo_mysql_options()
             );
         } catch (PDOException $e) {
             // Try to create the database if it does not exist yet.
@@ -28,8 +40,7 @@ function getDB() {
                     "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8",
                     DB_USER,
                     DB_PASS,
-                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                     PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
+                    pdo_mysql_options()
                 );
                 $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8 COLLATE utf8_general_ci");
 
@@ -37,9 +48,7 @@ function getDB() {
                     "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8",
                     DB_USER,
                     DB_PASS,
-                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                     PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true]
+                    pdo_mysql_options()
                 );
             } catch (PDOException $inner) {
                 // If DB is still not available, return null gracefully.

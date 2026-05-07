@@ -11,6 +11,19 @@ if ($pdo) {
     $featured = $pdo->query("SELECT * FROM vehicles WHERE status='approved' ORDER BY created_at DESC LIMIT 8")->fetchAll();
 }
 
+$bookedNowIds = [];
+$bookedNowUntilById = [];
+if ($pdo) {
+  $bookedRows = $pdo->query("SELECT vehicle_id, MAX(return_date) AS booked_until FROM bookings WHERE status='approved' AND CURDATE() BETWEEN pickup_date AND return_date GROUP BY vehicle_id")->fetchAll();
+  foreach ($bookedRows as $row) {
+    $vehicleId = (int)($row['vehicle_id'] ?? 0);
+    if ($vehicleId > 0) {
+      $bookedNowUntilById[$vehicleId] = $row['booked_until'] ?? null;
+    }
+  }
+  $bookedNowIds = array_keys($bookedNowUntilById);
+}
+
 $realVehicles = [
   ["name"=>"Lamborghini Huracán","type"=>"4wheeler","price"=>"₹12,000",
    "imgs"=>["https://images.unsplash.com/photo-1657217674164-9cbf85acfc6d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fExhbWJvcmdoaW5pJTIwSHVyYWMlQzMlQTFufGVufDB8fDB8fHww",
@@ -66,9 +79,30 @@ $formattedFeatured = array_map(function($v){
   ];
 }, $featured);
 
+foreach ($formattedFeatured as &$vf) {
+  $vf['is_booked_now'] = in_array((int)($vf['id'] ?? 0), $bookedNowIds, true);
+  $vf['booked_until'] = $bookedNowUntilById[(int)($vf['id'] ?? 0)] ?? null;
+}
+unset($vf);
+
 $displayVehicles = array_merge($formattedFeatured, $realVehicles);
 // Keep only 8 latest vehicles on the homepage. They should ideally be sorted, which we assume is done by the query.
 $displayVehicles = array_slice($displayVehicles, 0, 8);
+
+$heroSlides = [
+ 
+      ["img/1 (3).jpg", "Mahindra Thar"],
+      ["img/1 (4).jpg", "Porsche 911"],
+      ["img/image.png", "Lamborghini Huracán"],
+      
+      
+];
+
+foreach ($displayVehicles as &$dv) {
+  if (!isset($dv['is_booked_now'])) $dv['is_booked_now'] = false;
+  if (!isset($dv['booked_until'])) $dv['booked_until'] = null;
+}
+unset($dv);
 
 ?>
 <!DOCTYPE html>
@@ -76,6 +110,9 @@ $displayVehicles = array_slice($displayVehicles, 0, 8);
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= $pageTitle ?></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preconnect" href="https://images.unsplash.com">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
@@ -95,9 +132,20 @@ nav {
   border-bottom:1px solid transparent; transition:all 0.4s;
 }
 nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,0.08);}
-.nl { display:flex; align-items:center; gap:1.2rem; }
+.nl { display:flex; align-items:center; gap:0.35rem; }
 .logo-img { height:38px; width:auto; display:block; mix-blend-mode:screen; }
-@media(max-width:768px){.logo-img{height:30px;}}
+.logo-text {
+  font-size:1.48rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--white);
+  font-family:'Cinzel Decorative','Segoe UI',sans-serif;
+  line-height:1;
+  margin-left:-0.35rem;
+  transform:translateY(7px);
+}
+@media(max-width:768px){.logo-img{height:30px;}.logo-text{font-size:1.28rem;letter-spacing:.05em;margin-left:-0.3rem;transform:translateY(7px);}}
 .nav-links { display:flex; gap:2.2rem; list-style:none; align-items:center; }
 .nav-links a {
   color:rgba(226,232,240,0.6); font-size:0.75rem; font-weight:600;
@@ -125,6 +173,14 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
 .nbf:hover { background:#2563EB; transform:translateY(-1px); }
 .nav-user { font-size:0.75rem; color:rgba(226,232,240,0.45); display:flex; align-items:center; gap:0.5rem; }
 
+.flash-banner {
+  width: min(920px, 92vw); margin: 76px auto 0; padding: .72rem 1.1rem; font-size: .84rem;
+  font-weight: 600; border-radius: 11px; line-height: 1.45; text-align: center;
+  position: relative; z-index: 490;
+}
+.flash-banner.flash-success { background: rgba(0,214,127,.14); border: 1px solid rgba(0,214,127,.34); color: var(--ok); }
+.flash-banner.flash-error   { background: rgba(255,56,96,.12); border: 1px solid rgba(255,56,96,.26); color: var(--rd); }
+
 /* ══ HERO ══ */
 #hero {
   position: relative;
@@ -132,37 +188,118 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
   min-height: 640px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  padding-left: 3.5rem;
   background: #050709;
   overflow: hidden;
 }
 
-.hl{position:relative;z-index:10;padding:0 3.5rem;max-width:580px;}
-.hpre{font-size:.56rem;font-weight:400;letter-spacing:.45em;text-transform:uppercase;color:var(--bl);display:flex;align-items:center;gap:.7rem;margin-bottom:1.6rem;opacity:0;animation:ru .7s .15s forwards;}
-.hpre::before{content:'';width:20px;height:1px;background:var(--bl);}
-.hh{font-size:clamp(3.8rem,7.5vw,7rem);font-weight:700;line-height:.91;text-transform:uppercase;opacity:0;animation:ru .8s .3s forwards;}
-.hh .lb{color:var(--bl);}.hh .lw{color:var(--wh);}
-.hsub{font-size:1rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--bl);opacity:0;animation:ru .8s .48s forwards;}
-.hsub .dm{color:rgba(200,212,240,.45);}
-.hdesc{font-size:.88rem;line-height:1.9;color:var(--tx2);max-width:400px;font-weight:300;opacity:0;animation:ru .8s .6s forwards;margin:.8rem 0 2rem;}
-.hbtns{display:flex;gap:.9rem;flex-wrap:wrap;opacity:0;animation:ru .8s .74s forwards;}
-.hbn{display:inline-flex;align-items:center;gap:.55rem;background:var(--bl);color:var(--bk);padding:.82rem 2.2rem;border-radius:40px;font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;box-shadow:0 0 30px rgba(26,140,255,.4),0 0 65px rgba(26,140,255,.12);border:none;cursor:pointer;transition:all .35s;}
-.hbn:hover{background:#3AB0FF;transform:translateY(-2px);}
-.hbo{display:inline-flex;align-items:center;gap:.55rem;background:transparent;border:1.5px solid rgba(26,140,255,.3);color:var(--tx2);padding:.8rem 2rem;border-radius:40px;font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:all .3s;}
-.hbo:hover{border-color:var(--bl);color:var(--bl);}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background:
+    radial-gradient(circle at center, rgba(5,7,9,0.08), rgba(5,7,9,0.32) 68%),
+    linear-gradient(to bottom, rgba(5,7,9,0.08), rgba(5,7,9,0.42));
+  pointer-events: none;
+}
+
+.hero-center {
+  position: relative;
+  z-index: 12;
+  width: min(720px, 48%);
+  text-align: left;
+  padding: 0 0 0 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  animation: heroFloat 4s ease-in-out infinite;
+}
+
+.hero-kicker {
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .38em;
+  text-transform: uppercase;
+  color: var(--bl);
+  margin-bottom: 1rem;
+}
+
+.hero-title {
+  font-size: clamp(2.2rem, 4.8vw, 3.6rem);
+  line-height: 1.02;
+  text-transform: none;
+  font-weight: 800;
+  color: var(--wh);
+  margin-bottom: .45rem;
+  text-shadow: 0 8px 30px rgba(0,0,0,.45);
+}
+
+.hero-title span {
+  color: var(--bl);
+  display: inline-block;
+  animation: namePulse 2.8s ease-in-out infinite;
+}
+
+.hero-sub {
+  font-size: .98rem;
+  line-height: 1.6;
+  color: var(--tx2);
+  max-width: 560px;
+  margin: 0 0 1.8rem 0;
+  text-shadow: 0 4px 18px rgba(0,0,0,.28);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.hero-note {
+  margin-top: 1.2rem;
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(200,212,240,.55);
+}
 
 /* ══ HERO CAR — Fixed slideshow container ══ */
 .hcar{
-  position:absolute;right:0;bottom:0;
-  width:60%;height:100%;
-  z-index:5;
+  position:absolute;
+  top:0;
+  bottom:0;
+  /* align flush to the right edge so no gap remains */
+  right:0;
+  /* take the remaining 52% to pair with .hero-center at 48% */
+  width:52%;
+  max-width:none;
+  height:100%;
+  z-index:6;
   overflow:hidden;
+  /* remove rounded corners so it visually connects to the left side */
+  border-radius:0;
+  box-shadow:0 20px 60px rgba(2,6,23,0.6);
+  /* remove visible border so it doesn't look like a separate panel */
+  border:none;
+  backdrop-filter:blur(6px);
 }
+/* Background slideshow (full-bleed) */
+.hero-bg{position:absolute;inset:0;z-index:4;overflow:hidden;pointer-events:none}
+.hbslide{position:absolute;inset:0;opacity:0;transition:opacity .9s ease,transform .9s cubic-bezier(.16,1,.3,1);transform:scale(1.06);}
+.hbslide.active{opacity:1;transform:none}
+.hbslide img{width:100%;;height:100%;object-fit:cover;object-position:center;display:block;filter:blur(8px) brightness(.46);transform:scale(1.06)}
+.hero-overlay{z-index:6}
 /* Each slide is position:absolute, fills the container */
 .hslide{
   position:absolute;inset:0;
   opacity:0;
-  transition:opacity .7s ease;
+  transition:opacity .7s ease, transform .6s cubic-bezier(.16,1,.3,1);
   pointer-events:none;
+  border-radius:inherit;
+  overflow:hidden;
 }
 .hslide.active{opacity:1;pointer-events:auto;}
 .hslide img{
@@ -170,15 +307,71 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
   object-fit:cover;
   object-position:center center;
   display:block;
+  border-radius:inherit;
 }
 /* Dark gradient overlay so text stays readable */
 .hslide::after{
   content:'';
   position:absolute;inset:0;
-  background:linear-gradient(to right, rgba(0,0,0,.85) 0%, rgba(0,0,0,.3) 40%, transparent 70%);
+  /* darken and blend the left edge so the slideshow merges with the hero content */
+  background:linear-gradient(to left, rgba(5,7,9,0.95) 0%, rgba(5,7,9,0.65) 20%, rgba(5,7,9,0.32) 40%, transparent 60%);
 }
 /* Ground shadow */
 .hcar-shadow{position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(to top,rgba(0,0,0,.9),transparent);z-index:6;pointer-events:none;}
+
+/* Right-corner carousel controls */
+.hcar-ctrl {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 14;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .55rem .7rem;
+  border-radius: 999px;
+  background: rgba(2,6,23,.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.12);
+}
+.harr {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(15,23,42,.45);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .25s ease;
+}
+.harr:hover {
+  border-color: var(--bl);
+  color: var(--bl);
+  background: rgba(26,140,255,.16);
+}
+.hdots {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.hd {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255,255,255,.38);
+  cursor: pointer;
+  transition: all .25s ease;
+}
+.hd.on {
+  width: 18px;
+  border-radius: 999px;
+  background: var(--bl);
+  box-shadow: 0 0 12px rgba(26,140,255,.45);
+}
 
 /* ══ HERO BOTTOM BAR ══ */
 .hbot{
@@ -198,6 +391,28 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
 .hstl{font-size:.7rem;color:rgba(255,255,255,.4);margin-top:.2rem;font-weight:600;}
 
 @keyframes ru{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:none;}}
+@keyframes heroPop{from{opacity:0;transform:translateY(22px) scale(.98);}to{opacity:1;transform:none;}}
+@keyframes heroFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes namePulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(26,140,255,0));}50%{transform:scale(1.03);filter:drop-shadow(0 0 14px rgba(26,140,255,.45));}}
+
+@media(max-width:768px){
+  .hero-center{
+    width:min(100% - 1.5rem, 760px);
+  }
+  .hero-actions{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .hero-actions .hbn,
+  .hero-actions .hbo{
+    width:100%;
+    justify-content:center;
+  }
+
+  /* On small screens show slideshow full-bleed behind message */
+  .hcar{position:absolute;inset:0;right:0;width:100%;max-width:none;border-radius:0;box-shadow:none;border:none;backdrop-filter:none}
+  .hcar-ctrl{right:.75rem;bottom:.75rem;padding:.5rem .6rem}
+}
 
 /* ══ SEARCH BAR ══ */
 #sb{background:var(--bg2);border-bottom:1px solid var(--br);}
@@ -255,6 +470,7 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
 .bb{background:rgba(0,214,143,.08);border:1px solid rgba(0,214,143,.25);color:var(--ok);}
 .ba{background:rgba(255,184,48,.08);border:1px solid rgba(255,184,48,.25);color:var(--yn);}
 .bs{background:rgba(255,56,96,.1);border:1px solid rgba(255,56,96,.25);color:#FF3860;}
+.vcb-booked{top:2.4rem;background:rgba(255,56,96,.12);border:1px solid rgba(255,56,96,.28);color:#FF3860;}
 .vct{position:absolute;top:.8rem;right:.8rem;z-index:3;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:var(--bl);font-size:.75rem;}
 
 /* ── FIXED card image: uniform height, always fills, carousel ── */
@@ -330,6 +546,8 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
 .bdt:hover{border-color:var(--bl);color:var(--bl);}
 .brt{background:var(--bl);color:var(--bk);box-shadow:0 0 10px var(--blg);}
 .brt:hover{background:#3AB0FF;}
+.bsm-disabled{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx2);cursor:not-allowed;pointer-events:none;opacity:.6;}
+.btn-disabled{pointer-events:none;opacity:.6;filter:saturate(.7);}
 
 /* ══ PAYMENTS ══ */
 #pay{padding:5.5rem 3rem;background:linear-gradient(135deg,var(--bg2),var(--bg));}
@@ -401,24 +619,19 @@ nav.sc{background:rgba(14, 20, 27, 1); border-bottom:1px solid rgba(255,255,255,
 .nlfb{display:inline-flex;align-items:center;gap:.45rem;padding:.78rem 1.7rem;background:var(--bl);color:var(--bk);font-family:inherit;font-size:.74rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;border:none;cursor:pointer;transition:all .3s;white-space:nowrap;}
 .nlfb:hover{background:#3AB0FF;}
 
-/* ══ FOOTER ══ */
-footer{background:var(--bg2);border-top:1px solid var(--br);padding:4rem 3rem 2rem;}
-.fgi{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:4rem;margin-bottom:3rem;}
-.flo{margin-bottom:2.2rem;}
-.flo-img{height:95px;width:auto;display:block;mix-blend-mode:screen;}
-.fde{font-size:.8rem;line-height:1.85;color:var(--tx2);margin-bottom:1.2rem;}
-.fh{font-size:.58rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--bl);margin-bottom:1.2rem;}
-.fli{list-style:none;display:flex;flex-direction:column;gap:.55rem;}
-.fli a{display:inline-flex;align-items:center;gap:.45rem;color:var(--tx2);font-size:.8rem;transition:color .3s;}
-.fli a i{font-size:.7rem;color:var(--bl);width:14px;text-align:center;}
-.fli a:hover{color:var(--bl);}
-.fso{display:flex;gap:.5rem;flex-wrap:wrap;}
-.fso a{width:34px;height:34px;border:1px solid rgba(255,255,255,.07);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--tx2);font-size:.8rem;transition:all .3s;}
-.fso a:hover{border-color:var(--bl);color:var(--bl);background:rgba(26,140,255,.08);}
-.fbo{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding-top:2rem;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:1rem;}
-.fcp{font-size:.7rem;color:var(--tx2);}
-.fpa{display:flex;gap:.45rem;align-items:center;}
-.fpb{padding:.2rem .58rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);color:var(--tx2);font-size:.58rem;font-weight:700;letter-spacing:.1em;border-radius:2px;}
+/* Footer */
+.footer { padding: 5rem 0 2rem; background: var(--bk); border-top: 1px solid rgba(255,255,255,0.06); }
+.footer .wrap { max-width:1200px; margin:0 auto; padding:0 3rem; }
+.f-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 4rem; margin-bottom: 5rem; }
+.f-col h4 { color: var(--wh); margin-bottom: 2rem; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 800; }
+.f-col ul { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+.f-col a { color: var(--tx2); font-size: 0.95rem; transition: 0.3s; font-weight: 600; }
+.f-col a:hover { color: var(--bl); padding-left: 5px; }
+.f-btm { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 2.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--tx2); gap: 1rem; }
+.fcp { flex: 1; text-align: center; }
+.f-socials { display: flex; gap: 1.8rem; }
+.f-socials i { font-size: 1.2rem; cursor: pointer; transition: 0.3s; }
+.f-socials i:hover { color: var(--bl); transform: scale(1.1); }
 
 /* ══ MODAL ══ */
 .mov{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:2000;display:none;align-items:center;justify-content:center;padding:1.5rem;}
@@ -454,13 +667,61 @@ select.fin option{background:var(--bg3);}
 
 @media(max-width:1000px){.hwg{grid-template-columns:1fr 1fr;}.teg{grid-template-columns:1fr 1fr;}.payg{grid-template-columns:1fr;}.ocg{grid-template-columns:1fr;}.fgi{grid-template-columns:1fr 1fr;}.hstats{display:none;}.paym{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:768px){nav{padding:.9rem 1.5rem;}.nav-links{display:none;}.hl{padding:0 1.5rem;padding-bottom:220px;max-width:100%;}.hcar{width:100%;}.hbot{padding:1rem 1.5rem;}.sec{padding:4rem 1.5rem;}.teg{grid-template-columns:1fr;}.hwg{grid-template-columns:1fr;}.fgi{grid-template-columns:1fr;}.msg{grid-template-columns:1fr 1fr;}.sbi{padding:1.2rem 1.5rem;}}
+
+/* ================= Enhancements: Neon, Pop, Hero sync */
+.hero-vehicle{
+  margin-top:1.1rem;display:flex;flex-direction:column;gap:.35rem;align-items:flex-start;
+  background:linear-gradient(180deg, rgba(26,140,255,0.06), rgba(10,13,23,0.28));
+  padding:.9rem 1rem;border-radius:10px;border:1px solid rgba(26,140,255,.12);box-shadow:0 8px 30px rgba(26,140,255,.06);
+}
+.hero-vehicle .hv-tag{font-size:.62rem;font-weight:800;color:var(--bl);letter-spacing:.18em;text-transform:uppercase;background:rgba(26,140,255,.06);padding:.18rem .5rem;border-radius:6px;border:1px solid rgba(26,140,255,.08)}
+.hero-vehicle .hv-name{font-size:1.05rem;font-weight:800;color:var(--wh);}
+.btn-neon{position:relative;overflow:visible;border-radius:8px;transition:transform .22s ease,box-shadow .22s ease;}
+.btn-neon::after{content:'';position:absolute;inset:-2px;border-radius:10px;background:linear-gradient(90deg,rgba(58,176,255,.14),rgba(58,255,184,.08),rgba(168,85,247,.06));filter:blur(8px);opacity:0;transition:opacity .28s;z-index:-1}
+.btn-neon:hover{transform:translateY(-3px)}
+.btn-neon:hover::after{opacity:1}
+.neon-glow{animation:neonPulse 2.6s ease-in-out infinite;color:var(--bl)}
+@keyframes neonPulse{0%,100%{text-shadow:0 0 0 rgba(26,140,255,0);}50%{text-shadow:0 0 18px rgba(26,140,255,.45);}}
+.pop{animation:popAnim .48s cubic-bezier(.2,.9,.3,1)}
+@keyframes popAnim{0%{transform:scale(.96);opacity:.6}60%{transform:scale(1.06);opacity:1}100%{transform:scale(1);opacity:1}}
+
+/* Hero name letter animation */
+.hero-title .char{display:inline-block;opacity:0;transform:translateY(18px) scale(.98);transition:transform .46s cubic-bezier(.2,.9,.3,1),opacity .46s;}
+.hero-title .char.show{opacity:1;transform:none;}
+.hero-title .char.neon{color:var(--bl);text-shadow:0 0 18px rgba(26,140,255,.42)}
+
+/* buttons used in hero: Book and List */
+.btn-book{
+  background:linear-gradient(90deg,#1A8CFF 0%,#3AB0FF 60%);
+  color:#02121a;padding:.58rem 1rem;border-radius:10px;font-weight:800;display:inline-flex;align-items:center;gap:.6rem;border:none;box-shadow:0 10px 32px rgba(26,140,255,.14);transition:transform .18s ease,box-shadow .18s ease;font-size:.92rem;
+}
+.btn-book:hover{transform:translateY(-4px);box-shadow:0 18px 42px rgba(26,140,255,.18)}
+.btn-book i{font-size:0.98rem;color:#02121a}
+
+.btn-list{
+  background:transparent;border:1px solid rgba(58,176,255,.18);color:var(--wh);padding:.52rem .95rem;border-radius:10px;font-weight:800;display:inline-flex;align-items:center;gap:.45rem;transition:all .18s;font-size:.9rem;
+}
+.btn-list:hover{background:rgba(26,140,255,.06);border-color:rgba(58,176,255,.32);transform:translateY(-2px)}
+
+.hero-gmail{
+  margin: .4rem 0 .55rem;
+  font-size: .95rem; font-weight: 600;
+  color: rgba(200,212,240,.82);
+  display: flex; align-items: center; gap: .5rem;
+  flex-wrap: wrap;
+}
+.hero-gmail .g-ic{ color:#4285F4;font-size:1.05rem; }
+
 </style>
 </head>
 <body>
+<?php $flash = getFlash(); if ($flash): ?>
+<div class="flash-banner flash-<?= htmlspecialchars($flash['type'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($flash['msg']) ?></div>
+<?php endif; ?>
 
 <!-- NAV -->
 <nav id="mn">
-  <a href="index.php" class="nl"><img src="img/logo.png" alt="VRide" class="logo-img" fetchpriority="high"></a>
+  <a href="index.php" class="nl"><img src="img/lo.png" alt="VRide" class="logo-img" fetchpriority="high"><span class="logo-text">Ride</span></a>
   <ul class="nav-links">
     <li><a href="index.php" class="on">Home</a></li>
     <li><a href="vehicles.php">Fleet</a></li>
@@ -485,35 +746,47 @@ select.fin option{background:var(--bg3);}
 </nav>
 
 <section id="hero">
-
-  <div class="hl">
-    <h1 class="hh">
-      <span class="lb">LUXURY</span><br>
-      <span class="lw">VEHICLE</span><br>
-      <span class="lb">RENTALS</span>
-    </h1>
-    <p class="hsub">FIND THE <span style="color:var(--wh)">BEST VEHICLE</span><br>FOR RENT <span class="dm">TODAY</span></p>
-    <p class="hdesc">Cars, Bikes, SUVs — India's most trusted rental platform. Verified vehicles, fair pricing, doorstep delivery.</p>
-    <div class="hbtns">
-      <a href="#fleet" class="hbn">BOOK NOW <i class="fa-solid fa-arrow-right"></i></a>
-      <a href="list_vehicle.php" class="hbo"><i class="fa-solid fa-plus"></i> LIST YOUR VEHICLE</a>
-    </div>
+  <!-- Background slideshow (full-bleed, blurred) -->
+  <div class="hero-bg" id="heroBg">
+    <?php foreach($heroSlides as $idx => $sl): ?>
+      <div class="hbslide <?= $idx===0?'active':'' ?>" data-index="<?= $idx ?>">
+        <img src="<?= $sl[0] ?>" alt="<?= htmlspecialchars($sl[1]) ?>">
+      </div>
+    <?php endforeach; ?>
   </div>
-
   <!-- HERO SLIDESHOW — full-bleed, equal-size slides -->
   <div class="hcar" id="heroWrap">
-    <?php
-    $heroSlides = [
-      ["https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200&q=80", "Lamborghini Huracán"],
-      ["https://images.unsplash.com/photo-1563720223185-11003d516935?w=1200&q=80", "Mercedes GLE"],
-      ["https://images.unsplash.com/photo-1723306975792-f5a053a59dd3?q=80&w=1200&auto=format&fit=crop", "Mahindra Thar"],
-    ];
-    foreach($heroSlides as $idx => $sl): ?>
-    <div class="hslide <?= $idx===0?'active':'' ?>" data-index="<?= $idx ?>">
+    <?php foreach($heroSlides as $idx => $sl): ?>
+    <div class="hslide <?= $idx===0?'active':'' ?>" data-index="<?= $idx ?>" data-title="<?= htmlspecialchars($sl[1]) ?>">
       <img src="<?= $sl[0] ?>" alt="<?= $sl[1] ?>">
     </div>
     <?php endforeach; ?>
     <div class="hcar-shadow"></div>
+    <div class="hcar-ctrl">
+      <button id="pr" class="harr" type="button" aria-label="Previous slide"><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="hdots">
+        <?php foreach($heroSlides as $idx => $sl): ?>
+          <button class="hd <?= $idx===0 ? 'on' : '' ?>" type="button" aria-label="Go to slide <?= $idx + 1 ?>"></button>
+        <?php endforeach; ?>
+      </div>
+      <button id="nx" class="harr" type="button" aria-label="Next slide"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  </div>
+
+  <div class="hero-overlay"></div>
+
+  <div class="hero-center">
+    <div class="hero-kicker">Good to see you</div>
+    <h1 class="hero-title">Welcome, <span><?= htmlspecialchars($_SESSION['name'] ?? 'Guest') ?></span></h1>
+    <?php if (!empty($_SESSION['email']) && ($_SESSION['auth_via'] ?? '') === 'google'): ?>
+    <p class="hero-gmail" title="Signed in with Google"><i class="fa-brands fa-google g-ic" aria-hidden="true"></i><?= htmlspecialchars($_SESSION['email']) ?></p>
+    <?php endif; ?>
+    <p class="hero-sub">Discover curated vehicles, effortless bookings, and journeys crafted just for you — start exploring your next ride.</p>
+    <div class="hero-actions">
+      <a href="#fleet" class="hbn btn-book" id="bookNow"><i class="fa-solid fa-calendar-days"></i> BOOK NOW</a>
+      <a href="list_vehicle.php" class="hbo btn-list" id="listNow"><i class="fa-solid fa-plus"></i> LIST YOUR VEHICLE</a>
+    </div>
+    <!-- hero vehicle card removed as requested -->
   </div>
 
   
@@ -592,6 +865,7 @@ select.fin option{background:var(--bg3);}
       foreach($displayVehicles as $i=>$v):
         $tc  = $tagCls[$v['tag']??''] ?? 'bp';
         $is2w = ($v['type']==='2wheeler');
+        $isBookedNow = !empty($v['is_booked_now']);
         $rawImg = $v['img'] ?? $v['image'] ?? '';
         /* Replace broken local paths with a reliable online fallback */
         if(empty($rawImg) || str_starts_with($rawImg,'/img/')){
@@ -601,6 +875,9 @@ select.fin option{background:var(--bg3);}
       <div class="vc rv" data-type="<?= $v['type'] ?>" style="transition-delay:<?= ($i%4)*.08 ?>s">
         <?php if(!empty($v['tag'])): ?>
         <div class="vcb <?= $tc ?>"><?= $v['tag'] ?></div>
+        <?php endif; ?>
+        <?php if($isBookedNow): ?>
+        <div class="vcb vcb-booked">Booked<?= !empty($v['booked_until']) ? ' till '.htmlspecialchars(date('d M', strtotime($v['booked_until']))) : '' ?></div>
         <?php endif; ?>
         <div class="vct"><i class="fa-solid <?= $is2w ? 'fa-motorcycle' : 'fa-car' ?>"></i></div>
 
@@ -649,12 +926,16 @@ select.fin option{background:var(--bg3);}
           <div class="vcf">
             <div>
               <div class="vcpl">From</div>
-              <div class="vcp"><?= $v['price']??('₹'.number_format($v['final_price']??$v['price_per_day']??0)) ?><small>/day</small></div>
+              <div class="vcp"><?= $v['price']??('₹'.number_format($v['final_price']??$v['price_per_hour']??0)) ?><small>/hour</small></div>
               <div class="vclo"><i class="fa-solid fa-location-dot"></i> <?= $v['city']??'India' ?></div>
             </div>
             <div class="vcb2">
               <button class="bsm bdt" onclick='openModal(<?= htmlspecialchars(json_encode(array_merge($v,["img"=>$rawImg])),ENT_QUOTES) ?>)'>Details</button>
-              <a href="book_vehicle.php?id=<?= $v['id']??1 ?>" class="bsm brt" style="display:inline-flex;align-items:center;">Book</a>
+              <?php if($isBookedNow): ?>
+                <span class="bsm bsm-disabled" title="Unavailable right now">Unavailable</span>
+              <?php else: ?>
+                <a href="book_vehicle.php?id=<?= $v['id']??1 ?>&t=<?= urlencode($v['name'] ?? $v['title'] ?? 'Vehicle') ?>&type=<?= urlencode($v['type'] ?? '2wheeler') ?><?= !empty($v['imgs'][0]) ? '&img='.rawurlencode((string)$v['imgs'][0]) : '' ?>" class="bsm brt" style="display:inline-flex;align-items:center;">Book</a>
+              <?php endif; ?>
             </div>
           </div>
         </div>
@@ -844,57 +1125,37 @@ select.fin option{background:var(--bg3);}
 </section>
 
 <!-- FOOTER -->
-<footer>
-  <div class="fgi">
-    <div>
-      <div class="flo"><img src="img/logo.png" alt="VRide" class="flo-img"></div>
-      <div class="fde">India's trusted vehicle rental platform. Admin-verified vehicles, fair pricing, doorstep delivery across 12+ cities.</div>
-      <div class="fso">
-        <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-        <a href="#" aria-label="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
-        <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-        <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-        <a href="#" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+<footer class="footer">
+  <div class="wrap">
+    <div class="f-top">
+      <div class="f-col">
+        <a href="home.php" class="logo"><img src="img/lo.png" alt="VRide" style="height:38px; mix-blend-mode:screen;"><span class="logo-text">Ride</span></a>
+        <p style="margin-top:1.5rem; color:var(--tx2); line-height:1.7; font-weight:600;">Redefining luxury rentals in India. Experience the ride of your life with our premium fleet and seamless service.</p>
+      </div>
+      <div class="f-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="#">Luxury Cars</a></li>
+          <li><a href="#">Super Bikes</a></li>
+          <li><a href="#">Vintage Collection</a></li>
+        </ul>
+      </div>
+      <div class="f-col">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="contact.php">Contact Us</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+        </ul>
       </div>
     </div>
-    <div>
-      <div class="fh">Fleet</div>
-      <ul class="fli">
-        <li><a href="vehicles.php?type=2wheeler"><i class="fa-solid fa-motorcycle"></i> Bikes</a></li>
-        <li><a href="vehicles.php?type=2wheeler"><i class="fa-solid fa-person-biking"></i> Scooters</a></li>
-        <li><a href="vehicles.php?type=4wheeler"><i class="fa-solid fa-car"></i> Cars</a></li>
-        <li><a href="vehicles.php?type=4wheeler"><i class="fa-solid fa-car-side"></i> SUVs</a></li>
-        <li><a href="vehicles.php"><i class="fa-solid fa-charging-station"></i> Electric Vehicles</a></li>
-      </ul>
-    </div>
-    <div>
-      <div class="fh">Company</div>
-      <ul class="fli">
-        <li><a href="#"><i class="fa-solid fa-circle-info"></i> About VRide</a></li>
-        <li><a href="list_vehicle.php"><i class="fa-solid fa-plus"></i> List Your Vehicle</a></li>
-        <li><a href="#"><i class="fa-solid fa-briefcase"></i> Careers</a></li>
-        <li><a href="#"><i class="fa-solid fa-newspaper"></i> Press</a></li>
-        <li><a href="contact.php"><i class="fa-solid fa-envelope"></i> Contact Us</a></li>
-      </ul>
-    </div>
-    <div>
-      <div class="fh">Support</div>
-      <ul class="fli">
-        <li><a href="#"><i class="fa-solid fa-headset"></i> Help Center</a></li>
-        <li><a href="#"><i class="fa-solid fa-shield-halved"></i> Insurance</a></li>
-        <li><a href="#"><i class="fa-solid fa-file-contract"></i> Terms</a></li>
-        <li><a href="#"><i class="fa-solid fa-user-shield"></i> Privacy</a></li>
-        <li><a href="#"><i class="fa-solid fa-rotate-left"></i> Refund Policy</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="fbo">
-    <div class="fcp">&copy; <?= date('Y') ?> VRide Technologies Pvt. Ltd. All rights reserved.</div>
-    <div class="fpa">
-      <span style="font-size:.6rem;color:var(--tx2);margin-right:.3rem;">Payments:</span>
-      <?php foreach(['UPI','VISA','MC','PAYTM','RUPAY'] as $pb): ?>
-      <span class="fpb"><?= $pb ?></span>
-      <?php endforeach; ?>
+    <div class="f-btm">
+      <p class="fcp">&copy; 2026 VRide Anti. All rights reserved💕</p>
+      <div class="f-socials">
+        <i class="fa-brands fa-instagram"></i>
+        <i class="fa-brands fa-facebook-f"></i>
+        <i class="fa-brands fa-x-twitter"></i>
+      </div>
     </div>
   </div>
 </footer>
@@ -970,24 +1231,65 @@ document.addEventListener('mouseover', e => {
   }
 });
 
-// ── HERO SLIDESHOW (CSS-driven, no img.src swapping) ──────────────────
-const slides = document.querySelectorAll('.hslide');
+// ── HERO SLIDESHOW (CSS-driven, synchronized background + right panel) ──
+const rightSlides = document.querySelectorAll('.hslide');
+const bgSlides = document.querySelectorAll('.hbslide');
 const dots   = document.querySelectorAll('.hd');
 let ci = 0, autoTimer;
+const userName = <?= json_encode($_SESSION['name'] ?? 'Guest') ?>;
+function setHeroName(name) {
+  const htSpan = document.querySelector('.hero-title span');
+  if(!htSpan) return;
+  // clear existing content and create per-character spans
+  htSpan.innerHTML = '';
+  const chars = Array.from(String(name));
+  chars.forEach(ch => {
+    const s = document.createElement('span'); s.className = 'char'; s.textContent = ch === ' ' ? '\u00A0' : ch; htSpan.appendChild(s);
+  });
+  // stagger reveal
+  htSpan.querySelectorAll('.char').forEach((el, i) => setTimeout(() => el.classList.add('show'), i * 45));
+  // subtle neon after reveal
+  setTimeout(() => htSpan.classList.add('neon-glow'), chars.length * 45 + 120);
+  setTimeout(() => htSpan.classList.remove('neon-glow'), chars.length * 45 + 1400);
+}
+
+function updateHeroForSlide(index) {
+  // Always show logged-in user's name in hero (do not replace with car names)
+  const hv = document.getElementById('heroVehicle');
+  if(hv) {
+    const nameEl = hv.querySelector('.hv-name');
+    if(nameEl) { nameEl.textContent = userName; nameEl.classList.remove('pop'); void nameEl.offsetWidth; nameEl.classList.add('pop'); }
+  }
+  setHeroName(userName);
+}
 
 function goSlide(i) {
-  slides[ci].classList.remove('active');
+  const len = rightSlides.length || 1;
+  // remove current
+  rightSlides[ci]?.classList.remove('active');
+  bgSlides[ci]?.classList.remove('active');
   dots[ci]?.classList.remove('on');
-  ci = (i + slides.length) % slides.length;
-  slides[ci].classList.add('active');
+  ci = (i + len) % len;
+  // set new
+  rightSlides[ci]?.classList.add('active');
+  bgSlides[ci]?.classList.add('active');
   dots[ci]?.classList.add('on');
+  updateHeroForSlide(ci);
 }
+
 function startAuto() { autoTimer = setInterval(() => goSlide(ci + 1), 5000); }
 function resetAuto()  { clearInterval(autoTimer); startAuto(); }
 
 document.getElementById('nx')?.addEventListener('click', () => { goSlide(ci + 1); resetAuto(); });
 document.getElementById('pr')?.addEventListener('click', () => { goSlide(ci - 1); resetAuto(); });
+dots.forEach((dot, idx) => {
+  dot.addEventListener('click', () => {
+    goSlide(idx);
+    resetAuto();
+  });
+});
 startAuto();
+updateHeroForSlide(ci);
 
 // SEARCH
 function goSearch() {
@@ -1027,7 +1329,21 @@ function openModal(v) {
   document.getElementById('mSp').textContent  = v.speed || 'Contact Admin';
   document.getElementById('mSe').textContent  = (v.seats || 'N/A') + ' / ' + (v.fuel || 'N/A');
   document.getElementById('mDs').textContent  = v.description || 'A premium well-maintained ' + (v.cat || v.category || 'vehicle') + ' available for rent.';
-  document.getElementById('mBk').href = 'book_vehicle.php?id=' + (v.id || 1);
+  const bookBtn = document.getElementById('mBk');
+  if (v.is_booked_now) {
+    bookBtn.textContent = 'Unavailable';
+    bookBtn.href = 'javascript:void(0)';
+    bookBtn.classList.add('btn-disabled');
+  } else {
+    bookBtn.innerHTML = 'Book Now <i class="fa-solid fa-arrow-right"></i>';
+    const t = encodeURIComponent(v.name || v.title || 'Vehicle');
+    const ty = encodeURIComponent(v.type || '2wheeler');
+    let bookUrl = 'book_vehicle.php?id=' + (v.id || 1) + '&t=' + t + '&type=' + ty;
+    const thumb = (Array.isArray(v.imgs) && v.imgs[0]) ? v.imgs[0] : (v.img || '');
+    if (thumb) bookUrl += '&img=' + encodeURIComponent(thumb);
+    bookBtn.href = bookUrl;
+    bookBtn.classList.remove('btn-disabled');
+  }
   document.getElementById('dm').classList.add('open');
 }
 function closeModal() { document.getElementById('dm').classList.remove('open'); }
@@ -1060,6 +1376,7 @@ document.getElementById('nlBtn')?.addEventListener('click', function () {
 });
 
 </script>
+<?php include __DIR__ . '/firebase_script.php'; ?>
 </body>
 </html>
 
